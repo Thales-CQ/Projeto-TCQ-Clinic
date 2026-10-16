@@ -8,8 +8,7 @@
 .patient-edit__message {
   display: grid;
   gap: var(--space-3);
-  width: min(100%, 820px);
-  margin: 0 auto;
+  width: 100%;
   padding: var(--space-4);
   color: var(--color-text-muted);
   background: var(--color-surface);
@@ -29,8 +28,8 @@
 }
 
 .patient-edit__status-error {
-  width: min(100%, 820px);
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   padding: var(--space-3);
   color: var(--color-error);
   background: var(--color-error-background);
@@ -63,11 +62,6 @@
 }
 
 @media (max-width: 40rem) {
-  .patient-edit__message,
-  .patient-edit__status-error {
-    width: 100%;
-  }
-
   .patient-edit__status-button--inactive:not(:disabled) {
     color: var(--color-action-status-inactive-text);
     background: var(--color-surface);

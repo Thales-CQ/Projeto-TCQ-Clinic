@@ -1,3 +1,5 @@
+import { getCepIntegrationStatus, publishCepIntegrationStatus } from "./cepIntegrationStatus.js";
+
 const API_URL = "/api/v1";
 let csrfToken = null;
 let sessionCheck = null;
@@ -190,6 +192,108 @@ export async function getPreferences(signal) {
   });
   if (!response.ok) throw apiError(response, data);
   return data;
+}
+
+function integrationError(response, data) {
+  const error = data?.error;
+  const result = new Error(
+    typeof error === "string"
+      ? error
+      : error?.message || "Não foi possível concluir a operação.",
+  );
+  result.status = response.status;
+  result.code = error?.code;
+  return result;
+}
+
+export const CEP_CONFIGURATION_FIELDS = Object.freeze([
+  "provider_name",
+  "url_template",
+  "method",
+  "field_map",
+  "auth_header",
+  "auth_prefix",
+  "is_active",
+]);
+
+export function buildCepConfigurationPayload(configuration, { includeActivation = true } = {}) {
+  if (!configuration || typeof configuration !== "object" || Array.isArray(configuration)) return {};
+  const payload = {};
+  for (const field of CEP_CONFIGURATION_FIELDS) {
+    if (field === "is_active" && !includeActivation) continue;
+    if (Object.hasOwn(configuration, field)) payload[field] = configuration[field];
+  }
+  return payload;
+}
+
+export async function getCepIntegration() {
+  publishCepIntegrationStatus(null);
+  try {
+    const { response, data } = await request("/integrations/cep", { cache: "no-store" });
+    if (!response.ok) throw integrationError(response, data);
+    const integration = data.integration;
+    publishCepIntegrationStatus(typeof integration?.is_active === "boolean" ? integration.is_active : null);
+    return integration;
+  } catch (error) {
+    publishCepIntegrationStatus(null);
+    throw error;
+  }
+}
+
+function writeCepIntegration(path, payload) {
+  return enqueueAuth(async () => {
+    if (!csrfToken) await readSession();
+    const { response, data } = await request(path, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw integrationError(response, data);
+    const integration = data.integration;
+    if (path === "/integrations/cep/configuration" && Object.hasOwn(payload, "is_active")) {
+      publishCepIntegrationStatus(typeof integration?.is_active === "boolean" ? integration.is_active : null);
+    }
+    return integration;
+  });
+}
+
+export function saveCepConfiguration(configuration) {
+  return writeCepIntegration(
+    "/integrations/cep/configuration",
+    buildCepConfigurationPayload(configuration),
+  );
+}
+
+export function saveCepCredential(credential) {
+  return writeCepIntegration("/integrations/cep/credential", { credential });
+}
+
+export async function lookupCep(cep, { signal } = {}) {
+  const active = getCepIntegrationStatus();
+  if (active !== true) {
+    const error = new Error(active === false
+      ? "Consulta de CEP está desativada."
+      : "O status da consulta de CEP ainda não foi confirmado.");
+    error.status = active === false ? 409 : 503;
+    error.code = active === false ? "integration_disabled" : "integration_status_unknown";
+    throw error;
+  }
+  const params = new URLSearchParams({ cep });
+  const { response, data } = await request(`/integrations/cep/lookup?${params.toString()}`, {
+    cache: "no-store",
+    signal,
+  });
+  if (!response.ok) {
+    const error = integrationError(response, data);
+    if (error.status === 409 && error.code === "integration_disabled") {
+      publishCepIntegrationStatus(false);
+    }
+    throw error;
+  }
+  return data.address;
 }
 
 // User writes share the authentication queue so session/CSRF rotation cannot

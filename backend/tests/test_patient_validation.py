@@ -3,7 +3,10 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.validators.patient import validate_email, validate_full_name, validate_patient
+from app.validators.patient import (
+    validate_email, validate_full_name, validate_patient,
+    validate_postal_code, validate_state,
+)
 
 
 VALID_REQUIRED_FIELDS = {"birth_date": "1990-05-20", "sex": "F"}
@@ -125,6 +128,42 @@ def test_omitted_optional_fields_remain_absent():
         "birth_date": date(1990, 5, 20),
         "sex": "F",
     }
+
+
+@pytest.mark.parametrize("value", ["01001-000", "01001000", " 01001-000 "])
+def test_postal_code_accepts_cep_and_normalizes_to_eight_digits(value):
+    assert validate_postal_code(value) == "01001000"
+
+
+@pytest.mark.parametrize("value", ["0100-100", "0100100", "01001-00A", 1001000])
+def test_postal_code_rejects_invalid_cep(value):
+    with pytest.raises(ValueError):
+        validate_postal_code(value)
+
+
+@pytest.mark.parametrize("value, expected", [("sp", "SP"), (" AC ", "AC")])
+def test_state_normalizes_valid_uf(value, expected):
+    assert validate_state(value) == expected
+
+
+@pytest.mark.parametrize("value", ["XX", "S", "SPX"])
+def test_state_rejects_invalid_uf(value):
+    with pytest.raises(ValueError):
+        validate_state(value)
+
+
+@pytest.mark.parametrize("field", ["postal_code", "address", "address_number", "city", "state"])
+@pytest.mark.parametrize("empty", [None, "", "  "])
+def test_empty_address_fields_are_explicit_clear_values(field, empty):
+    normalized, errors = validate_patient({field: empty}, partial=True)
+    assert errors == {}
+    assert normalized == {field: None}
+
+
+def test_omitted_address_fields_remain_absent_in_partial_update():
+    normalized, errors = validate_patient({"city": "Campinas"}, partial=True)
+    assert errors == {}
+    assert normalized == {"city": "Campinas"}
 
 
 @pytest.mark.parametrize("field", ["cpf", "phone", "email"])

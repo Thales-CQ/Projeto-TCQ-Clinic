@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "./hooks/useAuth";
 import { useNavigation } from "./hooks/useNavigation";
-import { canAccessDestination, navigationForUser } from "./routes/navigation";
+import { canAccessDestination, isAdminAwaitingCepPermission, navigationForUser } from "./routes/navigation";
 import AuthLayout from "./layouts/AuthLayout/AuthLayout";
 import MainLayout from "./layouts/MainLayout/MainLayout";
 import Login from "./pages/Login/Login";
@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard/Dashboard";
 import Patients from "./features/patients/PatientsFeature.jsx";
 import Users from "./features/users/UsersFeature.jsx";
 import Profiles from "./features/profiles/ProfilesFeature.jsx";
+import IntegrationFeature from "./features/settings/IntegrationFeature.jsx";
 import ChangePassword from "./pages/ChangePassword/ChangePassword";
 import Button from "./components/Button/Button";
 
@@ -41,6 +42,7 @@ export default function App() {
     );
   }
   const destinationAllowed = canAccessDestination(destination, user);
+  const administratorAccessPending = isAdminAwaitingCepPermission(destination, user);
   return isAuthenticated ? (
     <MainLayout navigationItems={navigationForUser(user)} currentDestination={destination}>
       {!destinationAllowed ? (
@@ -60,6 +62,12 @@ export default function App() {
         <Profiles
           view={destination.view}
           onViewChange={(view) => navigate(`perfis-${view}`)}
+        />
+      ) : destination.id === "integracao" ? (
+        <IntegrationFeature
+          key={administratorAccessPending ? "activation-pending" : "available"}
+          permissions={user?.permissions ?? []}
+          administratorAccessPending={administratorAccessPending}
         />
       ) : destination.id === "alterar-senha" ? (
         <ChangePassword />

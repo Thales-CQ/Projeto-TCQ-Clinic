@@ -15,14 +15,19 @@ test("groups the catalog using API IDs and friendly labels", () => {
     { id: 31, code: "profiles.update", description: "Alterar perfis" },
     { id: 7, code: "patients.view", description: "Consultar pacientes" },
     { id: 12, code: "users.create", description: "Cadastrar usuários" },
+    { id: 41, code: "integrations.cep.view", description: "Consultar integração" },
+    { id: 42, code: "integrations.cep.configure", description: "Configurar integração" },
   ];
   const groups = groupedPermissions(catalog);
-  assert.deepEqual(groups.map((group) => group.label), ["Pacientes", "Usuários", "Perfis"]);
+  assert.deepEqual(groups.map((group) => group.label), ["Pacientes", "Usuários", "Perfis", "Integração de CEP"]);
   assert.deepEqual(groups[0].permissions[0], {
     id: 7, code: "patients.view", description: "Consultar pacientes", label: "Consultar pacientes",
   });
   assert.equal(groups[1].permissions[0].id, 12);
   assert.equal(groups[2].permissions[0].id, 31);
+  assert.deepEqual(groups[3].permissions.map(({ id, code }) => [id, code]), [
+    [41, "integrations.cep.view"], [42, "integrations.cep.configure"],
+  ]);
 });
 
 test("supports multiple selection and profile permission IDs from the API", () => {

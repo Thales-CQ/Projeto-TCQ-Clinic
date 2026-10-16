@@ -1,6 +1,7 @@
 alembic==1.20.0
 blinker==1.9.0
 click==8.5.0
+cryptography>=44,<52
 Flask==3.1.3
 Flask-Migrate==4.1.0
 Flask-SQLAlchemy==3.1.1

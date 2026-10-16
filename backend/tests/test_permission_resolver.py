@@ -64,7 +64,7 @@ def test_administrator_grants_come_from_migration(app):
         admin = Profile.query.filter_by(name="Administrador").one()
         user.profiles.append(admin)
         db.session.commit()
-        assert len(effective_permissions(user)) == 13
+        assert len(effective_permissions(user)) == 17
         assert effective_permissions(user) == {permission.code for permission in Permission.query.all()}
 
 

@@ -107,6 +107,36 @@ def validate_email(value):
     return value
 
 
+BRAZILIAN_STATES = frozenset({
+    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT",
+    "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO",
+    "RR", "SC", "SP", "SE", "TO",
+})
+
+
+def validate_postal_code(value):
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError("postal_code deve ser texto.")
+    value = value.strip()
+    if not value:
+        return None
+    if not re.fullmatch(r"[0-9]{5}-?[0-9]{3}", value):
+        raise ValueError("postal_code deve conter 8 dígitos.")
+    return value.replace("-", "")
+
+
+def validate_state(value):
+    value = _optional_text(value, "state", 2)
+    if value is None:
+        return None
+    value = value.upper()
+    if value not in BRAZILIAN_STATES:
+        raise ValueError("state deve ser uma UF brasileira válida.")
+    return value
+
+
 PATIENT_VALIDATORS = {
     "full_name": validate_full_name,
     "birth_date": validate_birth_date,
@@ -114,6 +144,11 @@ PATIENT_VALIDATORS = {
     "cpf": validate_cpf,
     "phone": validate_phone,
     "email": validate_email,
+    "postal_code": validate_postal_code,
+    "address": lambda value: _optional_text(value, "address", 255),
+    "address_number": lambda value: _optional_text(value, "address_number", 20),
+    "city": lambda value: _optional_text(value, "city", 120),
+    "state": validate_state,
 }
 
 

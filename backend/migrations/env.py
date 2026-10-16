@@ -1,4 +1,5 @@
 import logging
+from contextlib import nullcontext
 from logging.config import fileConfig
 
 from flask import current_app
@@ -16,12 +17,9 @@ logger = logging.getLogger('alembic.env')
 
 
 def get_engine():
-    try:
-        # this works with Flask-SQLAlchemy<3 and Alchemical
-        return current_app.extensions['migrate'].db.get_engine()
-    except (TypeError, AttributeError):
-        # this works with Flask-SQLAlchemy>=3
-        return current_app.extensions['migrate'].db.engine
+    # Flask-SQLAlchemy 3.x exposes the active engine directly. Calling the
+    # legacy get_engine() method emits a deprecation warning on every migration.
+    return current_app.extensions['migrate'].db.engine
 
 
 def get_engine_url():
@@ -96,7 +94,28 @@ def run_migrations_online():
 
     connectable = get_engine()
 
-    with connectable.connect() as connection:
+    injected_connection = config.attributes.get("connection")
+    if injected_connection is not None:
+        expected_database = config.attributes.get("expected_database")
+        expected_user = config.attributes.get("expected_current_user")
+        if expected_database is not None or expected_user is not None:
+            from sqlalchemy import text
+
+            database, current_user = injected_connection.execute(
+                text("SELECT DATABASE(), CURRENT_USER()")
+            ).one()
+            if database != expected_database or current_user != expected_user:
+                raise RuntimeError(
+                    "Conexão Alembic recusada: DATABASE()/CURRENT_USER() "
+                    "não correspondem ao destino esperado."
+                )
+    connection_scope = (
+        nullcontext(injected_connection)
+        if injected_connection is not None
+        else connectable.connect()
+    )
+
+    with connection_scope as connection:
         context.configure(
             connection=connection,
             target_metadata=get_metadata(),

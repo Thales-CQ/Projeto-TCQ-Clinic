@@ -234,12 +234,14 @@ def test_catalog_contains_exact_migrated_permissions(app):
         "users.view", "users.create", "users.update", "users.change_status",
         "users.reset_password", "users.assign_profiles",
         "profiles.view", "profiles.create", "profiles.update",
+        "integrations.cep.view", "integrations.cep.configure",
+        "integrations.cep.manage", "integrations.cep.lookup",
     }
     response = as_user(app, 1).get(BASE + "/permissions")
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     rows = response.json["permissions"]
-    assert len(rows) == 13
+    assert len(rows) == len(expected)
     assert {row["code"] for row in rows} == expected
     assert [row["code"] for row in rows] == sorted(expected)
     with app.app_context():
@@ -352,7 +354,7 @@ def test_nonadmin_can_grant_own_permissions_and_omit_higher_existing_permissions
     assert profile_state(app, target_id)[2] == {ids["patients.view"]}
 
 
-@pytest.mark.parametrize("removed", [None, *range(13)])
+@pytest.mark.parametrize("removed", [None, *range(17)])
 def test_administrator_cannot_lose_any_structural_permission(app, removed):
     ids = sorted(catalog_ids(app).values())
     requested = [] if removed is None else ids[:removed] + ids[removed + 1:]

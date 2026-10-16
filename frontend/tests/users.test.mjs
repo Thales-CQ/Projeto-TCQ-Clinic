@@ -1,10 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "vite";
 import { apiBirthDate, displayBirthDate, maskBirthDate, validatePasswordConfirmation, validateUserFullName } from "../src/features/users/state/userForm.js";
-import { canAccessDestination, findDestination, permissionForDestination, resolveDestination, navigationForUser } from "../src/routes/navigation.js";
+import { canAccessDestination, findDestination, isAdminAwaitingCepPermission, permissionForDestination, resolveDestination, navigationForUser } from "../src/routes/navigation.js";
 import { userEditCapabilities } from "../src/features/users/state/userEditCapabilities.js";
 
 // Run with node --test tests/*.test.mjs; no extra dependencies.
@@ -133,23 +134,30 @@ test("users and password hashes resolve to real views; patient routes remain int
   assert.equal(findDestination("usuarios").href, "#/usuarios/consultar");
   assert.equal(resolveDestination("#/alterar-senha").id, "alterar-senha");
   assert.equal(findDestination("alterar-senha").href, "#/alterar-senha");
+  assert.equal(resolveDestination("#/configuracoes/integracao").id, "integracao");
+  assert.equal(resolveDestination("#/configuracoes/integracao").moduleId, "configuracoes");
+  assert.equal(findDestination("integracao-cep").href, "#/configuracoes/integracao");
   assert.equal(resolveDestination("#/pacientes").routeId, "pacientes-consultar");
   assert.equal(resolveDestination("#/fake").id, "inicio");
 });
 
-test("navigation exposes only permitted module options", () => {
-  for (const user of [null, {}, { is_admin: true }, { is_admin: "true" }]) {
+test("navigation exposes permitted module options and the admin activation route", () => {
+  for (const user of [null, {}, { is_admin: "true" }]) {
     assert.ok(!navigationForUser(user).some((item) => item.id === "configuracoes"));
   }
+  const pendingAdminSettings = navigationForUser({ is_admin: true, permissions: [] })
+    .find((item) => item.id === "configuracoes");
+  assert.deepEqual(pendingAdminSettings.children.map((item) => item.label), ["Integração"]);
   const items = navigationForUser({ is_admin: true, permissions: [
-    "users.view", "profiles.create", "patients.view",
+    "users.view", "profiles.create", "patients.view", "integrations.cep.view",
   ] });
   assert.ok(!items.some((item) => item.id === "usuarios"));
   const settings = items.find((item) => item.id === "configuracoes");
-  assert.deepEqual(settings.children.map((item) => item.label), ["Usuários", "Perfis"]);
+  assert.deepEqual(settings.children.map((item) => item.label), ["Usuários", "Perfis", "Integração"]);
   assert.equal(settings.children[0].href, "#/usuarios/consultar");
   assert.equal(settings.children[0].children, undefined);
   assert.equal(settings.children[1].href, "#/perfis/cadastrar");
+  assert.equal(settings.children[2].href, "#/configuracoes/integracao");
   assert.ok(!settings.disabled);
 });
 
@@ -164,8 +172,55 @@ test("view and create permissions are independent in navigation", () => {
     .some((item) => item.id === "configuracoes"), false);
   assert.equal(navigationForUser({ permissions: ["profiles.view"] })
     .find((item) => item.id === "configuracoes").children[0].label, "Perfis");
-  assert.equal(navigationForUser({ permissions: ["profiles.view"] })
-    .find((item) => item.id === "configuracoes").children.length, 1);
+  assert.deepEqual(navigationForUser({ permissions: ["profiles.view"] })
+    .find((item) => item.id === "configuracoes").children.map((item) => item.label), ["Perfis"]);
+});
+
+test("integration navigation requires its own view permission", () => {
+  const destination = resolveDestination("#/configuracoes/integracao");
+  for (const permissions of [[], ["patients.view"], ["users.view"], ["profiles.view"]]) {
+    const user = { permissions };
+    assert.equal(canAccessDestination(destination, user), false, permissions.join(", "));
+  }
+  const permitted = { permissions: ["integrations.cep.view"] };
+  assert.equal(canAccessDestination(destination, permitted), true);
+  assert.ok(navigationForUser(permitted).find((item) => item.id === "configuracoes")
+    ?.children.some((item) => item.id === "integracao"));
+  for (const permission of ["integrations.cep.configure", "integrations.cep.manage", "integrations.cep.lookup"]) {
+    assert.equal(canAccessDestination(destination, { permissions: [permission] }), false);
+  }
+  const pendingAdmin = { is_admin: true, permissions: [] };
+  assert.equal(isAdminAwaitingCepPermission(destination, pendingAdmin), true);
+  assert.equal(canAccessDestination(destination, pendingAdmin), true);
+  assert.ok(navigationForUser(pendingAdmin).find((item) => item.id === "configuracoes")
+    ?.children.some((item) => item.id === "integracao"));
+  assert.equal(isAdminAwaitingCepPermission(destination, { is_admin: "true", permissions: [] }), false);
+  assert.equal(isAdminAwaitingCepPermission(destination, permitted), false);
+});
+
+test("desktop and mobile menu markup exposes the admin CEP activation route", async () => {
+  const vite = await createServer({ configFile: false, server: { middlewareMode: true }, cacheDir: "/tmp/clinica-vite-tests" });
+  try {
+    const [{ default: Menu }, css] = await Promise.all([
+      vite.ssrLoadModule("/src/components/Menu/Menu.jsx"),
+      readFile(new URL("../src/components/Menu/Menu.css", import.meta.url), "utf8"),
+    ]);
+    const items = navigationForUser({ is_admin: true, permissions: [] });
+    const html = renderToStaticMarkup(createElement(Menu, {
+      items,
+      currentDestination: resolveDestination("#/configuracoes/integracao"),
+    }));
+
+    assert.match(html, /aria-label="Navegação principal"/);
+    assert.match(html, /aria-label="Abrir menu"/);
+    assert.match(html, /aria-expanded="false"[^>]*aria-controls=/);
+    assert.match(html, />Configurações<\/button>/);
+    assert.match(html, />Integração<\/a>/);
+    assert.match(css, /@media \(max-width: 760px\)/);
+    assert.match(css, /\.menu--open \.menu__list/);
+  } finally {
+    await vite.close();
+  }
 });
 
 test("module submenus hide each unauthorized view and create option", async () => {

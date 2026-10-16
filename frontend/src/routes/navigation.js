@@ -36,6 +36,11 @@ export const navigationItems = [
         createRouteId: "perfis-cadastrar", createHref: "#/perfis/cadastrar",
         createView: "cadastrar",
       },
+      {
+        id: "integracao", routeId: "integracao-cep", pageId: "integracao",
+        label: "Integração", href: "#/configuracoes/integracao",
+        permission: "integrations.cep.view",
+      },
     ],
   },
 ];
@@ -52,6 +57,13 @@ function flattenNavigation(items, moduleId, pageId) {
 }
 
 const destinations = flattenNavigation(navigationItems);
+
+export function isAdminAwaitingCepPermission(destination, user) {
+  return destination?.id === "integracao"
+    && user?.is_admin === true
+    && !(Array.isArray(user?.permissions)
+      && user.permissions.includes("integrations.cep.view"));
+}
 
 // Internal module navigation remains hash-addressable without exposing these
 // actions as expandable items in the main menu.
@@ -80,6 +92,7 @@ export function findDestination(destinationId) {
 export function navigationForUser(user) {
   const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
   const can = (code) => permissions.includes(code);
+  const hasPermissionSet = (sets) => sets.some((set) => set.every(can));
 
   function filterItems(items) {
     return items.flatMap((item) => {
@@ -89,7 +102,12 @@ export function navigationForUser(user) {
         const hasAuthorizedChild = children.some((child) => !child.disabled);
         return hasAuthorizedChild ? [{ ...item, children }] : [];
       }
+      if (item.requiredPermissionSets && !hasPermissionSet(item.requiredPermissionSets)) return [];
       if (!item.permission || can(item.permission)) return [item];
+      // Keep the activation route discoverable to a structural administrator
+      // while the CEP permission migration is pending. The route shows a
+      // dependency notice; the API remains protected by backend permissions.
+      if (item.id === "integracao" && user?.is_admin === true) return [item];
       const createPermissions = item.createPermissions ?? (item.createPermission ? [item.createPermission] : []);
       if (createPermissions.length > 0 && createPermissions.every(can)) {
         return [{
@@ -108,6 +126,7 @@ export function navigationForUser(user) {
 
 export function permissionForDestination(destination) {
   if (!destination) return null;
+  if (destination.id === "integracao") return "integrations.cep.view";
   if (destination.view === "cadastrar") {
     return `${destination.id === "pacientes" ? "patients" : destination.id === "usuarios" ? "users" : "profiles"}.create`;
   }
@@ -118,8 +137,12 @@ export function permissionForDestination(destination) {
 }
 
 export function canAccessDestination(destination, user) {
+  const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
+  if (isAdminAwaitingCepPermission(destination, user)) return true;
+  if (destination?.requiredPermissionSets) {
+    return destination.requiredPermissionSets.some((set) => set.every((code) => permissions.includes(code)));
+  }
   const permission = permissionForDestination(destination);
   const required = destination?.requiredPermissions ?? (permission === null ? [] : [permission]);
-  const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
   return required.every((code) => permissions.includes(code));
 }

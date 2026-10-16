@@ -1,8 +1,8 @@
 from datetime import date
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 from sqlalchemy import extract, or_
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.extensions import db
 from app.models import Patient
@@ -14,6 +14,16 @@ from app.validators.patient import PATIENT_VALIDATORS, validate_patient
 
 patients_bp = Blueprint("patients", __name__)
 patients_bp.before_request(protect_csrf)
+
+
+@patients_bp.errorhandler(SQLAlchemyError)
+def handle_database_error(exc):
+    db.session.rollback()
+    current_app.logger.exception("Falha de banco de dados em uma rota de pacientes.")
+    return jsonify({
+        "error": "Não foi possível concluir a operação no momento.",
+        "code": "database_error",
+    }), 500
 
 
 @patients_bp.before_request
@@ -32,6 +42,7 @@ def prevent_caching(response):
 def _serialize_patient(patient):
     return {
         "id": patient.id,
+        "record_number": patient.record_number,
         "full_name": patient.full_name,
         "birth_date": patient.birth_date.isoformat() if patient.birth_date else None,
         "sex": patient.sex,
@@ -41,12 +52,18 @@ def _serialize_patient(patient):
         "is_active": patient.is_active,
         "created_at": patient.created_at.isoformat(),
         "updated_at": patient.updated_at.isoformat(),
+        "postal_code": patient.postal_code,
+        "address": patient.address,
+        "address_number": patient.address_number,
+        "city": patient.city,
+        "state": patient.state,
     }
 
 
 def _serialize_birthday_patient(patient):
     return {
         "id": patient.id,
+        "record_number": patient.record_number,
         "full_name": patient.full_name,
         "birth_date": patient.birth_date.isoformat(),
     }

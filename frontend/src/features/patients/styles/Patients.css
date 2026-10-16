@@ -44,18 +44,16 @@
   white-space: nowrap;
 }
 
-.patients--creating .patients__header {
+.patients--creating .patients__content,
+.patients--editing .patients__content {
   width: 100%;
   max-width: 820px;
   margin-inline: auto;
-  justify-content: center;
-  text-align: center;
 }
 
+.patients--creating .patients__header,
 .patients--editing .patients__header {
   width: 100%;
-  max-width: 820px;
-  margin-inline: auto;
   justify-content: center;
   text-align: center;
 }
@@ -63,7 +61,7 @@
 @media (max-width: 40rem) {
   .patients__header {
     align-items: stretch;
-    padding: 15px 16px;
+    padding: var(--space-4);
   }
 
   .patients__header .button {
@@ -76,8 +74,8 @@
 }
 
 @media (40rem < width <= 64rem) {
-  .patients--creating .patients__header,
-  .patients--editing .patients__header {
+  .patients--creating .patients__content,
+  .patients--editing .patients__content {
     max-width: none;
   }
 }

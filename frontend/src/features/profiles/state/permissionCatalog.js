@@ -30,6 +30,16 @@ export const permissionGroups = [
       ["profiles.update", "Editar perfis"],
     ],
   },
+  {
+    id: "integrations",
+    label: "Integração de CEP",
+    permissions: [
+      ["integrations.cep.view", "Consultar configuração de CEP"],
+      ["integrations.cep.configure", "Configurar provedor de CEP"],
+      ["integrations.cep.manage", "Gerenciar credencial do provedor"],
+      ["integrations.cep.lookup", "Testar consulta de CEP"],
+    ],
+  },
 ];
 
 const labels = new Map(permissionGroups.flatMap((group) => group.permissions));

@@ -29,6 +29,100 @@ test("patient search API preserves page size, query normalization and request op
   }
 });
 
+test("patient create and edit render the same shared form structure", async () => {
+  const vite = await createServer({
+    configFile: false,
+    server: { middlewareMode: true, hmr: false },
+    cacheDir: "/tmp/clinica-vite-tests",
+  });
+  try {
+    const [{ default: PatientForm }, { default: Patients }, { default: PatientEdit }, { default: Button }] = await Promise.all([
+      vite.ssrLoadModule("/src/features/patients/components/PatientForm.jsx"),
+      vite.ssrLoadModule("/src/features/patients/components/Patients.jsx"),
+      vite.ssrLoadModule("/src/features/patients/components/PatientEdit.jsx"),
+      vite.ssrLoadModule("/src/components/Button/Button.jsx"),
+    ]);
+    const makeForm = (editing) => ({
+      editing, fieldErrors: {}, fullName: "Ana Silva", birthDate: "2000-02-29", sex: "F",
+      cpf: "", phone: "", email: "", recordNumber: editing ? "" : "", saving: false,
+      nameInput: null, handleSubmit: () => {}, setBirthDate: () => {}, setSex: () => {},
+      setCpf: () => {}, setPhone: () => {}, setEmail: () => {}, setFullName: () => {},
+    });
+    const createMarkup = renderToStaticMarkup(createElement(PatientForm, {
+      form: makeForm(false), onCancel: () => {},
+    }));
+    const editMarkup = renderToStaticMarkup(createElement(PatientForm, {
+      form: makeForm(true), onCancel: () => {},
+      extraActions: createElement(Button, { className: "patient-edit__status-button" }, "Inativar"),
+    }));
+    assert.equal((createMarkup.match(/class="form-field patient-create__field"/g) || []).length, 12);
+    assert.equal((editMarkup.match(/class="form-field patient-create__field"/g) || []).length, 12);
+    assert.match(createMarkup, /Número do prontuário/);
+    assert.match(editMarkup, /Número do prontuário/);
+    assert.match(editMarkup, /patient-create__secondary-actions/);
+    assert.doesNotMatch(createMarkup, /patient-create__secondary-actions/);
+    const primaryActionClasses = (markup) => {
+      const actions = markup.match(/<div class="patient-create__primary-actions">([\s\S]*?)<\/div>/)?.[1] || "";
+      return [...actions.matchAll(/class="([^"]+)"/g)].map((match) => match[1]);
+    };
+    assert.deepEqual(primaryActionClasses(editMarkup), primaryActionClasses(createMarkup));
+    assert.match(createMarkup, /patient-create__actions"><div class="patient-create__primary-actions"/);
+    assert.match(editMarkup, /patient-create__secondary-actions[\s\S]*?patient-create__primary-actions/);
+
+    const [formStyles, patientStyles, editFeature] = await Promise.all([
+      readFile(new URL("../src/features/patients/styles/PatientForm.css", import.meta.url), "utf8"),
+      readFile(new URL("../src/features/patients/styles/Patients.css", import.meta.url), "utf8"),
+      readFile(new URL("../src/features/patients/PatientEditFeature.jsx", import.meta.url), "utf8"),
+    ]);
+    assert.match(editFeature, /import PatientFormFeature from "\.\/PatientFormFeature"/);
+    assert.match(patientStyles, /\.patients--creating \.patients__content,\s*\.patients--editing \.patients__content\s*\{[^}]*max-width: 820px/);
+    assert.match(patientStyles, /\.patients--creating \.patients__header,\s*\.patients--editing \.patients__header/);
+    assert.match(patientStyles, /@media \(40rem < width <= 64rem\)[\s\S]*?\.patients--creating \.patients__content,[\s\S]*?\.patients--editing \.patients__content\s*\{\s*max-width: none/);
+    const formFrameStyles = formStyles.match(/\.patient-create\s*\{([^}]*)\}/)?.[1] || "";
+    assert.match(formFrameStyles, /width: 100%/);
+    assert.doesNotMatch(formFrameStyles, /max-width|margin-inline/);
+    assert.match(formStyles, /\.patient-create__primary-actions\s*\{[^}]*margin-left: auto/);
+    assert.match(formStyles, /@media \(max-width: 40rem\)[\s\S]*?\.patient-create__actions\s*\{[^}]*flex-direction: column/);
+
+    const createScreen = renderToStaticMarkup(createElement(Patients, {
+      creating: true, editing: false, hasCreatePermission: true, hasViewPermission: true,
+      onResetEdit: () => {}, onClearError: () => {},
+      children: createElement(PatientForm, { form: makeForm(false), onCancel() {} }),
+    }));
+    const editScreen = renderToStaticMarkup(createElement(Patients, {
+      creating: false, editing: true, hasCreatePermission: true, hasViewPermission: true,
+      onResetEdit: () => {}, onClearError: () => {},
+      children: createElement(PatientEdit, {
+        loading: false, error: "", patient: { id: 7 }, statusError: "",
+        form: createElement(PatientForm, {
+          form: makeForm(true), onCancel() {},
+          extraActions: createElement(Button, { className: "patient-edit__status-button" }, "Inativar"),
+        }),
+      }),
+    }));
+    const renderShell = (creating, editing) => renderToStaticMarkup(createElement(Patients, {
+      creating, editing, hasCreatePermission: true, hasViewPermission: true,
+      onResetEdit: () => {}, onClearError: () => {}, children: createElement("div"),
+    }));
+    const createShell = renderShell(true, false);
+    const editShell = renderShell(false, true);
+    assert.match(createShell, /class="patients__header"/);
+    assert.match(editShell, /class="patients__header"/);
+    assert.match(createShell, /class="patients__content"/);
+    assert.match(editShell, /class="patients__content"/);
+    assert.match(createShell, /<h2 id="patients-title">Novo paciente<\/h2>/);
+    assert.match(editShell, /<h2 id="patients-title">Editar paciente<\/h2>/);
+    for (const markup of [createScreen, editScreen]) {
+      assert.match(markup, /class="patients__header"/);
+      assert.match(markup, /class="patient-create"/);
+      assert.ok(markup.indexOf('class="patients__header"') < markup.indexOf('class="patient-create"'));
+    }
+    assert.match(editScreen, /class="patient-edit"/);
+  } finally {
+    await vite.close();
+  }
+});
+
 test("patient create, edit and status API payloads preserve their contracts and CSRF", async () => {
   const api = await import("../src/services/api.js?patient-validation-writes");
   const calls = [];
@@ -138,6 +232,11 @@ test("patient edit saves data and status together when status permission is avai
       cpf: null,
       phone: null,
       email: null,
+      postal_code: null,
+      address: null,
+      address_number: null,
+      city: null,
+      state: null,
       is_active: false,
     });
     assert.equal(updatedPatient.is_active, false);
@@ -234,15 +333,16 @@ test("patient edit loading/error and form saving states render accessibly", asyn
     }, onCancel() {} }));
     assert.match(saving, /Atualizando/);
     assert.match(saving, /disabled=""/);
-    assert.match(saving, /aria-labelledby="patient-address-title"[^>]*aria-describedby="patient-address-note"/);
-    assert.match(saving, /O salvamento do endereço será habilitado em uma próxima etapa\./);
+    assert.match(saving, /aria-labelledby="patient-address-title"/);
+    assert.doesNotMatch(saving, /O salvamento do endereço será habilitado em uma próxima etapa/);
     for (const [id, label] of [
       ["patient-postal-code", "CEP"],
       ["patient-address", "Endereço"],
       ["patient-address-number", "Número"],
       ["patient-city", "Cidade"],
+      ["patient-state", "Estado (UF)"],
     ]) {
-      assert.match(saving, new RegExp(`<label[^>]*for="${id}"[^>]*>${label}<\\/label>`));
+      assert.ok(saving.includes('<label for="' + id + '">' + label + '</label>'));
       const input = saving.match(new RegExp(`<input\\b[^>]*id="${id}"[^>]*>`))?.[0];
       assert.ok(input, `campo ${label} renderizado`);
       assert.doesNotMatch(input, /required|name=/);
@@ -256,7 +356,7 @@ test("patient edit loading/error and form saving states render accessibly", asyn
     const noExistingRecord = renderToStaticMarkup(createElement(PatientForm, {
       form: { ...form, saving: false, recordNumber: "" }, onCancel() {},
     }));
-    assert.doesNotMatch(noExistingRecord, /id="patient-record-number"/);
+    assert.match(noExistingRecord, /id="patient-record-number"[^>]*placeholder="Não informado"[^>]*readOnly=""[^>]*aria-readonly="true"/);
 
     const creating = renderToStaticMarkup(createElement(PatientForm, {
       form: { ...form, editing: false, recordNumber: "", saving: false }, onCancel() {},
@@ -267,7 +367,7 @@ test("patient edit loading/error and form saving states render accessibly", asyn
   }
 });
 
-test("patient form keeps address inputs local and out of the create API payload", async () => {
+test("patient form includes address fields in the create API payload", async () => {
   const vite = await createServer({
     configFile: false,
     server: { middlewareMode: true, hmr: false },
@@ -299,6 +399,7 @@ test("patient form keeps address inputs local and out of the create API payload"
     assert.match(markup, />Endereço<\/h3>/);
     assert.match(markup, /patient-postal-code/);
     assert.match(markup, /patient-address-number/);
+    assert.match(markup, /patient-state/);
     await form.handleSubmit({ preventDefault() {} });
 
     const create = calls.find(({ options }) => options.method === "POST");
@@ -309,8 +410,14 @@ test("patient form keeps address inputs local and out of the create API payload"
       cpf: null,
       phone: null,
       email: null,
+      postal_code: null,
+      address: null,
+      address_number: null,
+      city: null,
+      state: null,
     });
     assert.equal(Object.hasOwn(JSON.parse(create.options.body), "record_number"), false);
+    assert.equal(Object.hasOwn(JSON.parse(create.options.body), "uf"), false);
   } finally {
     globalThis.fetch = originalFetch;
     await vite.close();
@@ -355,6 +462,38 @@ test("patient list status actions and module links follow existing permission fl
     assert.equal(canAccessDestination(resolveDestination("#/pacientes/consultar"), { permissions: ["patients.create"] }), false);
     assert.equal(canAccessDestination(resolveDestination("#/pacientes/cadastrar"), { permissions: ["patients.create"] }), true);
   } finally {
+    await vite.close();
+  }
+});
+
+
+test("opening an edit form with an existing CEP does not trigger a lookup", async () => {
+  const vite = await createServer({
+    configFile: false,
+    server: { middlewareMode: true, hmr: false },
+    cacheDir: "/tmp/clinica-vite-tests",
+  });
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (...args) => {
+    calls.push(args[0]);
+    return response(200, { address: { cep: "01001-000", address: "Praça da Sé", city: "São Paulo", state: "SP" } });
+  };
+  try {
+    const { default: usePatientForm } = await vite.ssrLoadModule(
+      "/src/features/patients/hooks/usePatientForm.js",
+    );
+    function EditHarness() {
+      usePatientForm({
+        mode: "edit",
+        patient: { id: 7, postal_code: "01001000", address: "Endereço existente" },
+      });
+      return null;
+    }
+    renderToStaticMarkup(createElement(EditHarness));
+    assert.deepEqual(calls, []);
+  } finally {
+    globalThis.fetch = originalFetch;
     await vite.close();
   }
 });

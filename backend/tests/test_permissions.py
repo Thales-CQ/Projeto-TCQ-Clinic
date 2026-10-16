@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from app import create_app
 from app.config import Config
 from app.extensions import db
-from app.models import Permission, Profile, User
+from app.models import CepIntegration, Permission, Profile, User
 
 
 EXPECTED_CODES = {
@@ -14,6 +14,8 @@ EXPECTED_CODES = {
     "users.view", "users.create", "users.update", "users.change_status",
     "users.reset_password", "users.assign_profiles",
     "profiles.view", "profiles.create", "profiles.update",
+    "integrations.cep.view", "integrations.cep.configure",
+    "integrations.cep.manage", "integrations.cep.lookup",
 }
 
 
@@ -87,11 +89,20 @@ def test_migration_seeds_only_administrator_and_preserves_existing_links(app):
         upgrade()
         db.session.expire_all()
         assert {permission.code for permission in Permission.query.all()} == EXPECTED_CODES
-        assert Permission.query.count() == 13
+        assert Permission.query.count() == len(EXPECTED_CODES)
         assert {permission.code for permission in db.session.get(Profile, admin_id).permissions} == EXPECTED_CODES
         assert db.session.get(Profile, common_id).permissions == []
         assert [profile.id for profile in db.session.get(User, user_id).profiles] == [common_id]
         assert db.session.get(User, user_id).is_admin is False
+        integration = CepIntegration.query.one()
+        assert integration.provider_name == "ViaCEP"
+        assert integration.url_template == "https://viacep.com.br/ws/{cep}/json/"
+        assert integration.method == "GET"
+        assert integration.field_map == {
+            "cep": "cep", "address": "logradouro",
+            "city": "localidade", "state": "uf",
+        }
+        assert integration.credential_ciphertext is None
         assert db.session.execute(text(
             "SELECT COUNT(*) FROM profile_permissions WHERE profile_id = :profile_id"
-        ), {"profile_id": admin_id}).scalar_one() == 13
+        ), {"profile_id": admin_id}).scalar_one() == len(EXPECTED_CODES)

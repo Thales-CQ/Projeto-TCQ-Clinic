@@ -2,13 +2,14 @@ from datetime import date, timedelta
 from unittest.mock import Mock
 
 import pytest
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from app import create_app
 from app.config import Config
 from app.extensions import db
-from app.models import Patient, Permission, Profile, User
+from app.models import Patient, PatientRecordNumberSequence, Permission, Profile, User
 
 
 PASSWORD = "senha-de-teste-005"
@@ -29,6 +30,7 @@ def app(monkeypatch):
     app.config["TESTING"] = True
     with app.app_context():
         db.create_all()
+        db.session.add(PatientRecordNumberSequence(id=1, current_value=0))
         admin_profile = Profile(name="Administrador", permissions=[
             Permission(code=code, description=code) for code in (
                 "patients.view", "patients.create", "patients.update", "patients.change_status",
@@ -126,6 +128,7 @@ def test_get_patient_uses_existing_serialization(app, authenticated_client):
         db.session.commit()
         expected = {
             "id": patient.id,
+            "record_number": patient.record_number,
             "full_name": patient.full_name,
             "birth_date": patient.birth_date.isoformat(),
             "sex": patient.sex,
@@ -135,6 +138,11 @@ def test_get_patient_uses_existing_serialization(app, authenticated_client):
             "is_active": patient.is_active,
             "created_at": patient.created_at.isoformat(),
             "updated_at": patient.updated_at.isoformat(),
+            "postal_code": None,
+            "address": None,
+            "address_number": None,
+            "city": None,
+            "state": None,
         }
 
     response = authenticated_client.get(
@@ -230,6 +238,79 @@ def test_update_patient_applies_partial_normalized_fields_and_preserves_others(
     assert response.json["patient"]["cpf"] == "52998224725"
     assert response.json["patient"]["phone"] == "31999998888"
     assert response.json["patient"]["created_at"] == created_at.isoformat()
+
+
+def test_patient_address_create_update_and_explicit_clear(app, authenticated_client):
+    token = authenticated_client.get(f"{AUTH_BASE}/me").json["csrf_token"]
+    created = authenticated_client.post(
+        PATIENTS_URL,
+        json={
+            "full_name": "Maria Silva", "birth_date": "1990-05-20", "sex": "F",
+            "postal_code": "01001-000", "address": " Praça da Sé ",
+            "address_number": "10", "city": "São Paulo", "state": "sp",
+        },
+        headers={"X-CSRF-Token": token},
+    )
+    assert created.status_code == 201
+    patient_id = created.json["patient"]["id"]
+    assert {
+        key: created.json["patient"][key]
+        for key in ("postal_code", "address", "address_number", "city", "state")
+    } == {
+        "postal_code": "01001000", "address": "Praça da Sé", "address_number": "10",
+        "city": "São Paulo", "state": "SP",
+    }
+
+    updated = authenticated_client.patch(
+        PATIENT_UPDATE_URL.format(patient_id=patient_id),
+        json={"city": "Campinas"},
+        headers={"X-CSRF-Token": token},
+    )
+    assert updated.status_code == 200
+    patient_data = updated.json["patient"]
+    assert patient_data["city"] == "Campinas"
+    assert patient_data["postal_code"] == "01001000"
+    assert patient_data["address"] == "Praça da Sé"
+    assert patient_data["address_number"] == "10"
+    assert patient_data["state"] == "SP"
+
+    cleared = authenticated_client.patch(
+        PATIENT_UPDATE_URL.format(patient_id=patient_id),
+        json={"postal_code": None, "address": "", "state": None},
+        headers={"X-CSRF-Token": token},
+    )
+    assert cleared.status_code == 200
+    patient_data = cleared.json["patient"]
+    assert patient_data["postal_code"] is None
+    assert patient_data["address"] is None
+    assert patient_data["state"] is None
+    assert patient_data["city"] == "Campinas"
+    with app.app_context():
+        saved = db.session.get(Patient, patient_id)
+        assert saved.postal_code is None
+        assert saved.address is None
+        assert saved.address_number == "10"
+        assert saved.city == "Campinas"
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [("postal_code", "0100-100"), ("state", "XX")],
+)
+def test_patient_address_rejects_invalid_cep_and_state(
+    authenticated_client, field, value,
+):
+    token = authenticated_client.get(f"{AUTH_BASE}/me").json["csrf_token"]
+    response = authenticated_client.post(
+        PATIENTS_URL,
+        json={
+            "full_name": "Maria Silva", "birth_date": "1990-05-20", "sex": "F",
+            field: value,
+        },
+        headers={"X-CSRF-Token": token},
+    )
+    assert response.status_code == 400
+    assert field in response.json["errors"]
 
 
 @pytest.mark.parametrize("is_active", [False, True])
@@ -474,16 +555,20 @@ def test_update_patient_rolls_back_unrelated_integrity_error(
     monkeypatch.setattr(Session, "rollback", tracked_rollback)
     token = authenticated_client.get(f"{AUTH_BASE}/me").json["csrf_token"]
 
-    with pytest.raises(IntegrityError) as raised:
-        authenticated_client.patch(
-            PATIENT_UPDATE_URL.format(patient_id=patient_id),
-            json={"full_name": "Ana Souza"},
-            headers={"X-CSRF-Token": token},
-        )
+    response = authenticated_client.patch(
+        PATIENT_UPDATE_URL.format(patient_id=patient_id),
+        json={"full_name": "Ana Souza"},
+        headers={"X-CSRF-Token": token},
+    )
 
-    assert raised.value is error
+    assert response.status_code == 500
+    assert response.json == {
+        "error": "Não foi possível concluir a operação no momento.",
+        "code": "database_error",
+    }
+    assert "other constraint" not in response.get_data(as_text=True)
     commit.assert_called_once()
-    rollback_spy.assert_called_once()
+    rollback_spy.assert_called()
 
 
 def test_update_patient_status_requires_authentication(client):
@@ -715,6 +800,7 @@ def test_list_today_birthdays_returns_only_today_matches(app, authenticated_clie
         db.session.commit()
         expected = {
             "id": birthday.id,
+            "record_number": birthday.record_number,
             "full_name": birthday.full_name,
             "birth_date": birthday.birth_date.isoformat(),
         }
@@ -786,7 +872,9 @@ def test_list_today_birthdays_response_contains_only_required_fields(app, authen
     response = authenticated_client.get(BIRTHDAYS_URL)
 
     assert response.status_code == 200
-    assert set(response.json["patients"][0]) == {"id", "full_name", "birth_date"}
+    assert set(response.json["patients"][0]) == {
+        "id", "record_number", "full_name", "birth_date"
+    }
 
 
 def test_list_patients_empty(authenticated_client):
@@ -816,6 +904,7 @@ def test_list_patients_serializes_existing_patient(app, authenticated_client):
         db.session.refresh(patient)
         expected = {
             "id": patient.id,
+            "record_number": patient.record_number,
             "full_name": patient.full_name,
             "birth_date": patient.birth_date.isoformat(),
             "sex": patient.sex,
@@ -825,6 +914,11 @@ def test_list_patients_serializes_existing_patient(app, authenticated_client):
             "is_active": patient.is_active,
             "created_at": patient.created_at.isoformat(),
             "updated_at": patient.updated_at.isoformat(),
+            "postal_code": None,
+            "address": None,
+            "address_number": None,
+            "city": None,
+            "state": None,
         }
 
     response = authenticated_client.get(PATIENTS_URL)
@@ -1109,10 +1203,12 @@ def test_create_patient_minimal(authenticated_client, app):
         assert saved.phone is None
         assert saved.email is None
         assert saved.is_active is True
+        assert saved.record_number == patient_data["record_number"]
         assert saved.created_at <= saved.updated_at
 
         assert patient_data == {
             "id": saved.id,
+            "record_number": saved.record_number,
             "full_name": saved.full_name,
             "birth_date": saved.birth_date.isoformat(),
             "sex": saved.sex,
@@ -1122,7 +1218,105 @@ def test_create_patient_minimal(authenticated_client, app):
             "is_active": True,
             "created_at": saved.created_at.isoformat(),
             "updated_at": saved.updated_at.isoformat(),
+            "postal_code": None,
+            "address": None,
+            "address_number": None,
+            "city": None,
+            "state": None,
         }
+
+
+def test_patient_record_number_is_read_only_in_create_and_update(app, authenticated_client):
+    token = authenticated_client.get(f"{AUTH_BASE}/me").json["csrf_token"]
+    create_response = authenticated_client.post(
+        PATIENTS_URL,
+        json={
+            "full_name": "Maria Silva", "birth_date": "1990-05-20", "sex": "F",
+            "record_number": "PR-999999",
+        },
+        headers={"X-CSRF-Token": token},
+    )
+    assert create_response.status_code == 400
+    assert create_response.json["fields"] == ["record_number"]
+
+    created = authenticated_client.post(
+        PATIENTS_URL,
+        json={"full_name": "Maria Silva", "birth_date": "1990-05-20", "sex": "F"},
+        headers={"X-CSRF-Token": token},
+    )
+    assert created.status_code == 201
+    record_number = created.json["patient"]["record_number"]
+
+    updated = authenticated_client.patch(
+        PATIENTS_URL + f"/{created.json['patient']['id']}",
+        json={"record_number": "PR-999999"},
+        headers={"X-CSRF-Token": token},
+    )
+    assert updated.status_code == 400
+    assert updated.json["fields"] == ["record_number"]
+    fetched = authenticated_client.get(PATIENTS_URL + f"/{created.json['patient']['id']}")
+    assert fetched.json["patient"]["record_number"] == record_number
+    ordinary_update = authenticated_client.patch(
+        PATIENTS_URL + f"/{created.json['patient']['id']}",
+        json={"full_name": "Maria Souza"},
+        headers={"X-CSRF-Token": token},
+    )
+    assert ordinary_update.status_code == 200
+    assert ordinary_update.json["patient"]["record_number"] == record_number
+
+
+def test_database_rejects_duplicate_patient_record_number(app):
+    with app.app_context():
+        patient = Patient(
+            full_name="Maria Silva", birth_date=date(1990, 5, 20), sex="F"
+        )
+        db.session.add(patient)
+        db.session.commit()
+        record_number = patient.record_number
+        with pytest.raises(IntegrityError):
+            db.session.execute(text("""
+                INSERT INTO patients
+                    (record_number, full_name, birth_date, sex, is_active, created_at, updated_at)
+                VALUES (:number, 'Outro Paciente', '1990-05-20', 'F', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """), {"number": record_number})
+            db.session.commit()
+        db.session.rollback()
+
+
+def test_inactivation_and_deletion_never_release_patient_record_number(
+    app, authenticated_client,
+):
+    token = authenticated_client.get(f"{AUTH_BASE}/me").json["csrf_token"]
+    created = authenticated_client.post(
+        PATIENTS_URL,
+        json={"full_name": "Maria Silva", "birth_date": "1990-05-20", "sex": "F"},
+        headers={"X-CSRF-Token": token},
+    )
+    patient_data = created.json["patient"]
+    record_number = patient_data["record_number"]
+
+    inactive = authenticated_client.patch(
+        PATIENT_STATUS_URL.format(patient_id=patient_data["id"]),
+        json={"is_active": False},
+        headers={"X-CSRF-Token": token},
+    )
+    assert inactive.status_code == 200
+    assert inactive.json["patient"]["record_number"] == record_number
+
+    with app.app_context():
+        patient = db.session.get(Patient, patient_data["id"])
+        db.session.delete(patient)
+        db.session.commit()
+        replacement = Patient(
+            full_name="Ana Costa", birth_date=date(1992, 8, 15), sex="F"
+        )
+        db.session.add(replacement)
+        db.session.commit()
+        assert replacement.record_number != record_number
+        assert db.session.execute(text(
+            "SELECT record_number FROM patient_record_number_registry "
+            "WHERE record_number = :number"
+        ), {"number": record_number}).scalar_one() == record_number
 
 
 def test_create_patient_complete(authenticated_client, app):
@@ -1158,6 +1352,7 @@ def test_create_patient_complete(authenticated_client, app):
 
         assert patient_data == {
             "id": saved.id,
+            "record_number": saved.record_number,
             "full_name": saved.full_name,
             "birth_date": saved.birth_date.isoformat(),
             "sex": saved.sex,
@@ -1167,6 +1362,11 @@ def test_create_patient_complete(authenticated_client, app):
             "is_active": True,
             "created_at": saved.created_at.isoformat(),
             "updated_at": saved.updated_at.isoformat(),
+            "postal_code": None,
+            "address": None,
+            "address_number": None,
+            "city": None,
+            "state": None,
         }
 
 
@@ -1443,7 +1643,7 @@ def test_create_patient_returns_409_for_concurrent_cpf_conflict(
     rollback_spy.assert_called_once()
 
 
-def test_create_patient_reraises_unrelated_integrity_error(
+def test_create_patient_returns_generic_json_for_unrelated_integrity_error(
     authenticated_client, monkeypatch
 ):
 
@@ -1462,13 +1662,54 @@ def test_create_patient_reraises_unrelated_integrity_error(
     monkeypatch.setattr(Session, "rollback", tracked_rollback)
     token = authenticated_client.get(f"{AUTH_BASE}/me").json["csrf_token"]
 
-    with pytest.raises(IntegrityError) as raised:
-        authenticated_client.post(
-            PATIENTS_URL,
-            json={"full_name": "Maria Souza", "birth_date": "1990-05-20", "sex": "F"},
-            headers={"X-CSRF-Token": token},
-        )
-    assert raised.value is error
+    response = authenticated_client.post(
+        PATIENTS_URL,
+        json={"full_name": "Maria Souza", "birth_date": "1990-05-20", "sex": "F"},
+        headers={"X-CSRF-Token": token},
+    )
+    assert response.status_code == 500
+    assert response.json == {
+        "error": "Não foi possível concluir a operação no momento.",
+        "code": "database_error",
+    }
+    assert "other constraint" not in response.get_data(as_text=True)
+    commit.assert_called_once()
+    rollback_spy.assert_called()
+
+
+def test_create_patient_returns_sanitized_json_for_database_errors(
+    authenticated_client, monkeypatch
+):
+    error = OperationalError(
+        "INSERT INTO patients", {}, Exception("sensitive database detail")
+    )
+    commit = Mock(side_effect=error)
+    rollback_spy = Mock()
+    original_rollback = Session.rollback
+
+    def tracked_rollback(session):
+        rollback_spy()
+        return original_rollback(session)
+
+    monkeypatch.setattr(Session, "commit", commit)
+    monkeypatch.setattr(Session, "rollback", tracked_rollback)
+    token = authenticated_client.get(f"{AUTH_BASE}/me").json["csrf_token"]
+
+    response = authenticated_client.post(
+        PATIENTS_URL,
+        json={"full_name": "Maria Souza", "birth_date": "1990-05-20", "sex": "F"},
+        headers={"X-CSRF-Token": token},
+    )
+
+    assert response.status_code == 500
+    assert response.is_json
+    assert response.json == {
+        "error": "Não foi possível concluir a operação no momento.",
+        "code": "database_error",
+    }
+    assert "sensitive database detail" not in response.get_data(as_text=True)
+    assert "INSERT INTO patients" not in response.get_data(as_text=True)
+    assert response.headers["Cache-Control"] == "no-store"
     commit.assert_called_once()
     rollback_spy.assert_called_once()
 
