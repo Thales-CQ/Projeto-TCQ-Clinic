@@ -53,7 +53,7 @@ Em `migrations/versions/f1a2b3c4d5e6_add_patient_record_number.py`, a migração
 
 - `scripts/replace_validation_patients.py` continua exigindo exatamente os IDs 1–39 como proteção do conjunto de dados previsto. O paciente E2E `id=40` faz o script recusar `--apply`, preservando-o contra substituição acidental. Não executar `--apply` na validação atual.
 - A verificação HTTP feita pelo agente não alcançou `127.0.0.1:5001`/`5174` porque os serviços do usuário estão em outro ambiente de execução. Os logs fornecidos pelo usuário e a execução bem-sucedida do E2E documentam o fluxo real.
-- O último valor observado de `log_bin_trust_function_creators` durante a preparação de triggers foi `1`; o valor original informado era `0`. A restauração não foi verificada nesta revisão.
+- Durante a migration, `log_bin_trust_function_creators` estava em `1`; o usuário executou `SET GLOBAL log_bin_trust_function_creators = 0` no monitor MySQL e confirmou `@@GLOBAL.log_bin=1` e `@@GLOBAL.log_bin_trust_function_creators=0`. Isso confirma o valor atual da instância; não foi verificada configuração persistente para reinicializações.
 
 ## Estado do Git
 

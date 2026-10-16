@@ -15,7 +15,10 @@ pós-verificação com 40 prontuários únicos e preservação de IDs e valores 
 O usuário também confirmou HTTP 200 no health check do Flask (5001) e pelo proxy
 Vite (5174). Durante a aplicação, `log_bin=1` e
 `log_bin_trust_function_creators=1`; o valor original observado antes da janela era
-`0`. A restauração ainda precisa ser confirmada com o DBA.
+`0`. Após a migration, o usuário executou `SET GLOBAL log_bin_trust_function_creators = 0`
+no monitor MySQL e confirmou `@@GLOBAL.log_bin=1` e
+`@@GLOBAL.log_bin_trust_function_creators=0`. Isso confirma o valor na instância em
+execução; a configuração persistente após reinicialização não foi verificada.
 
 ## Janela de migrations
 
