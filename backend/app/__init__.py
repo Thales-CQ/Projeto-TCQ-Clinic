@@ -1,5 +1,5 @@
 from flask import Flask
-
+from werkzeug.middleware.proxy_fix import ProxyFix
 from .commands import complete_legacy_user, create_admin, normalize_users
 from .config import Config
 from .database_safety import install_validation_database_guard
@@ -25,6 +25,13 @@ def create_app():
                 expected_database=app.config["VALIDATION_EXPECTED_DATABASE"],
                 expected_user=app.config["VALIDATION_EXPECTED_USER"],
             )
+
+    # Configura a confiança nos cabeçalhos encaminhados pelo proxy reverso Nginx.
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app,
+        x_for=1,
+        x_proto=1,
+        x_host=1,)
 
     # Registra as rotas HTTP da API.
     register_routes(app)
