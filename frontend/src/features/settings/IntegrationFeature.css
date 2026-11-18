@@ -61,7 +61,7 @@
   appearance: none;
   background: var(--color-surface-soft);
   border: var(--border-width) solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   transition: background-color 160ms ease;
 }
@@ -134,7 +134,7 @@
   font-size: var(--font-size-meta);
   background: var(--color-success-background);
   border: var(--border-width) solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .integration-settings__status.is-future {
@@ -241,7 +241,7 @@
 .integration-settings__accordion-description {
   max-width: 68ch;
   color: var(--color-text-muted);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-meta);
 }
 
 .integration-settings__chevron {
@@ -346,7 +346,7 @@
   text-align: left;
   min-width: 0;
   min-height: var(--control-height);
-  padding: 0.55rem 0.75rem;
+  padding: var(--space-2) var(--space-3);
   color: var(--color-text);
   font: inherit;
   background: var(--color-surface);
@@ -414,7 +414,7 @@
 .integration-settings__visibility {
   min-width: 5rem;
   min-height: var(--control-height);
-  padding: 0.5rem 0.75rem;
+  padding: var(--space-2) var(--space-3);
   color: var(--color-text);
   font: inherit;
   font-size: var(--font-size-button);

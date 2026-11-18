@@ -424,7 +424,7 @@ test("patient form includes address fields in the create API payload", async () 
   }
 });
 
-test("patient list status actions and module links follow existing permission flags", async () => {
+test("patient list status actions and permission-gated destinations follow existing flags", async () => {
   const vite = await createServer({
     configFile: false,
     server: { middlewareMode: true, hmr: false },
@@ -447,18 +447,13 @@ test("patient list status actions and module links follow existing permission fl
     assert.match(list(false, true), />Inativar/);
     assert.doesNotMatch(list(false, true), />Editar/);
 
-    const nav = (permissions) => renderToStaticMarkup(createElement(AuthContext.Provider, {
+    const shell = (permissions) => renderToStaticMarkup(createElement(AuthContext.Provider, {
       value: { hasPermission: (code) => permissions.includes(code) },
     }, createElement(Patients, {
       creating: false, editing: false,
-      hasCreatePermission: permissions.includes("patients.create"),
-      hasViewPermission: permissions.includes("patients.view"),
-      onResetEdit() {}, onClearError() {},
     })));
-    assert.match(nav(["patients.view"]), />Consultar/);
-    assert.doesNotMatch(nav(["patients.view"]), />Cadastrar/);
-    assert.match(nav(["patients.create"]), />Cadastrar/);
-    assert.doesNotMatch(nav(["patients.create"]), />Consultar/);
+    assert.doesNotMatch(shell(["patients.view"]), /module-sidebar|>Consultar<\/a>/);
+    assert.doesNotMatch(shell(["patients.create"]), /module-sidebar|>Cadastrar<\/a>/);
     assert.equal(canAccessDestination(resolveDestination("#/pacientes/consultar"), { permissions: ["patients.create"] }), false);
     assert.equal(canAccessDestination(resolveDestination("#/pacientes/cadastrar"), { permissions: ["patients.create"] }), true);
   } finally {

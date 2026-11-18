@@ -116,12 +116,7 @@ export default function IntegrationFeature({ permissions = [], administratorAcce
   const [lookupError, setLookupError] = useState("");
   const [result, setResult] = useState(null);
   const lookupAbortController = useRef(null);
-  const [expandedPanels, setExpandedPanels] = useState({
-    "cep-integration": true,
-    "whatsapp-integration": false,
-    "email-integration": false,
-    "other-integrations": false,
-  });
+  const [expandedPanels, setExpandedPanels] = useState({});
 
   function togglePanel(id) {
     setExpandedPanels((current) => toggleExpandedPanel(current, id));

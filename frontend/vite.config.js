@@ -8,6 +8,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: "0.0.0.0",
+    allowedHosts: [
+      "clinic.cqforge.digital",
+      "www.clinic.cqforge.digital",
+    ],
     proxy: {
       "/api": {
         target: apiProxyTarget,

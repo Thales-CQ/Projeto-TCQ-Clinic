@@ -18,7 +18,6 @@ export default function useProfiles({ view = "consultar", onViewChange }) {
   }
 
   return {
-    canCreate: hasPermission("profiles.create"),
     canEdit: hasPermission("profiles.update"),
     canView,
     creating,
@@ -30,6 +29,5 @@ export default function useProfiles({ view = "consultar", onViewChange }) {
     onRetry: () => setReload((current) => current + 1),
     reload,
     resetEditing: () => setEditingId(null),
-    clearMessage: () => setMessage(""),
   };
 }

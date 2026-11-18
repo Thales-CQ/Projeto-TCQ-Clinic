@@ -37,10 +37,6 @@ export default function PatientsFeature({ view = "consultar", onViewChange, onEd
     <Patients
       creating={patients.creating}
       editing={patients.editing}
-      hasCreatePermission={patients.hasCreatePermission}
-      hasViewPermission={patients.hasViewPermission}
-      onResetEdit={() => patients.setEditingPatientId(null)}
-      onClearError={() => patients.setError("")}
     >
       {content}
     </Patients>

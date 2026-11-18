@@ -89,12 +89,17 @@ test("header and dashboard prefer full name and fall back to legacy username", a
       createElement(Dashboard, { user }),
     ));
     const named = { full_name: "THALES COSTA QUEIROGA", username: "THALES" };
-    for (const html of [renderHeader(named), renderDashboard(named)]) {
+    const header = renderHeader(named);
+    assert.match(header, /aria-label="Minha conta"/);
+    assert.match(header, />Sair<\/button>/);
+    assert.match(header, /href="#\/minha-conta">[\s\S]*?Meu perfil<\/a>/);
+    assert.match(header, /href="#\/alterar-senha">[\s\S]*?Alterar senha<\/a>/);
+    for (const html of [header, renderDashboard(named)]) {
       assert.match(html, /THALES COSTA QUEIROGA/);
       assert.doesNotMatch(html, /THALES(?:<|!)/);
     }
     const legacy = { full_name: null, username: "THALES" };
-    assert.match(renderHeader(legacy), /<strong>THALES<\/strong>/);
+    assert.match(renderHeader(legacy), />THALES<\/strong>/);
     assert.match(renderDashboard(legacy), /Olá, THALES!/);
   } finally {
     await vite.close();
@@ -133,7 +138,10 @@ test("users and password hashes resolve to real views; patient routes remain int
   assert.equal(findDestination("usuarios-cadastrar").href, "#/usuarios/cadastrar");
   assert.equal(findDestination("usuarios").href, "#/usuarios/consultar");
   assert.equal(resolveDestination("#/alterar-senha").id, "alterar-senha");
+  assert.equal(resolveDestination("#/alterar-senha").moduleId, "minha-conta");
   assert.equal(findDestination("alterar-senha").href, "#/alterar-senha");
+  assert.equal(resolveDestination("#/minha-conta").id, "meu-perfil");
+  assert.equal(resolveDestination("#/minha-conta").moduleId, "minha-conta");
   assert.equal(resolveDestination("#/configuracoes/integracao").id, "integracao");
   assert.equal(resolveDestination("#/configuracoes/integracao").moduleId, "configuracoes");
   assert.equal(findDestination("integracao-cep").href, "#/configuracoes/integracao");
@@ -148,32 +156,52 @@ test("navigation exposes permitted module options and the admin activation route
   const pendingAdminSettings = navigationForUser({ is_admin: true, permissions: [] })
     .find((item) => item.id === "configuracoes");
   assert.deepEqual(pendingAdminSettings.children.map((item) => item.label), ["Integração"]);
-  const items = navigationForUser({ is_admin: true, permissions: [
-    "users.view", "profiles.create", "patients.view", "integrations.cep.view",
+  const allSettings = navigationForUser({ is_admin: true, permissions: [
+    "users.view", "users.create", "users.assign_profiles",
+    "profiles.view", "profiles.create", "patients.view", "integrations.cep.view",
   ] });
-  assert.ok(!items.some((item) => item.id === "usuarios"));
-  const settings = items.find((item) => item.id === "configuracoes");
-  assert.deepEqual(settings.children.map((item) => item.label), ["Usuários", "Perfis", "Integração"]);
-  assert.equal(settings.children[0].href, "#/usuarios/consultar");
-  assert.equal(settings.children[0].children, undefined);
-  assert.equal(settings.children[1].href, "#/perfis/cadastrar");
-  assert.equal(settings.children[2].href, "#/configuracoes/integracao");
-  assert.ok(!settings.disabled);
+  assert.ok(!allSettings.some((item) => item.id === "usuarios"));
+  const full = allSettings.find((item) => item.id === "configuracoes");
+  assert.deepEqual(full.children.map((item) => item.label), [
+    "Consultar colaboradores", "Cadastrar colaborador",
+    "Consultar perfis", "Cadastrar perfil", "Integração",
+  ]);
+  assert.deepEqual(full.children.map((item) => item.href), [
+    "#/usuarios/consultar", "#/usuarios/cadastrar",
+    "#/perfis/consultar", "#/perfis/cadastrar",
+    "#/configuracoes/integracao",
+  ]);
+  assert.equal(full.children[0].children, undefined);
+  assert.ok(!full.disabled);
+  const partial = navigationForUser({ is_admin: true, permissions: [
+    "users.view", "profiles.create", "patients.view", "integrations.cep.view",
+  ] }).find((item) => item.id === "configuracoes");
+  assert.deepEqual(partial.children.map((item) => item.label), [
+    "Consultar colaboradores", "Integração",
+  ]);
 });
 
-test("view and create permissions are independent in navigation", () => {
+test("view permission is required for both consult and create options", () => {
   assert.equal(navigationForUser({ permissions: ["patients.view"] })
-    .find((item) => item.id === "atendimento").children[0].href, "#/pacientes/consultar");
+    .find((item) => item.id === "pacientes").children[0].href, "#/pacientes/consultar");
   assert.equal(navigationForUser({ permissions: ["patients.create"] })
-    .find((item) => item.id === "atendimento").children[0].href, "#/pacientes/cadastrar");
-  assert.equal(navigationForUser({ permissions: ["users.create", "users.assign_profiles"] })
-    .find((item) => item.id === "configuracoes").children[0].href, "#/usuarios/cadastrar");
-  assert.equal(navigationForUser({ permissions: ["users.create"] })
-    .some((item) => item.id === "configuracoes"), false);
-  assert.equal(navigationForUser({ permissions: ["profiles.view"] })
-    .find((item) => item.id === "configuracoes").children[0].label, "Perfis");
-  assert.deepEqual(navigationForUser({ permissions: ["profiles.view"] })
-    .find((item) => item.id === "configuracoes").children.map((item) => item.label), ["Perfis"]);
+    .find((item) => item.id === "pacientes").children[0].href, "#/pacientes/cadastrar");
+
+  const settingsFor = (permissions) => navigationForUser({ permissions })
+    .find((item) => item.id === "configuracoes");
+  assert.equal(settingsFor(["users.create", "users.assign_profiles"]), undefined);
+  assert.equal(settingsFor(["users.create"]), undefined);
+  assert.equal(settingsFor(["profiles.create"]), undefined);
+  assert.deepEqual(settingsFor(["users.view"]).children.map((item) => item.routeId), ["usuarios-consultar"]);
+  assert.deepEqual(settingsFor(["profiles.view"]).children.map((item) => item.label), ["Consultar perfis"]);
+  assert.deepEqual(
+    settingsFor(["users.view", "users.create", "users.assign_profiles"]).children.map((item) => item.routeId),
+    ["usuarios-consultar", "usuarios-cadastrar"],
+  );
+  assert.deepEqual(
+    settingsFor(["profiles.view", "profiles.create"]).children.map((item) => item.routeId),
+    ["perfis-consultar", "perfis-cadastrar"],
+  );
 });
 
 test("integration navigation requires its own view permission", () => {
@@ -198,7 +226,7 @@ test("integration navigation requires its own view permission", () => {
   assert.equal(isAdminAwaitingCepPermission(destination, permitted), false);
 });
 
-test("desktop and mobile menu markup exposes the admin CEP activation route", async () => {
+test("menu markup exposes permitted routes without a mobile toggle", async () => {
   const vite = await createServer({ configFile: false, server: { middlewareMode: true }, cacheDir: "/tmp/clinica-vite-tests" });
   try {
     const [{ default: Menu }, css] = await Promise.all([
@@ -212,18 +240,22 @@ test("desktop and mobile menu markup exposes the admin CEP activation route", as
     }));
 
     assert.match(html, /aria-label="Navegação principal"/);
-    assert.match(html, /aria-label="Abrir menu"/);
-    assert.match(html, /aria-expanded="false"[^>]*aria-controls=/);
+    assert.doesNotMatch(html, /menu__toggle|Abrir menu/);
+    assert.match(html, /aria-label="Configurações"/);
     assert.match(html, />Configurações<\/button>/);
+    assert.match(html, /class="menu__submenu-panel"[^>]*hidden/);
+    assert.match(html, /class="menu__submenu"[^>]*hidden/);
     assert.match(html, />Integração<\/a>/);
     assert.match(css, /@media \(max-width: 760px\)/);
-    assert.match(css, /\.menu--open \.menu__list/);
+    assert.match(css, /\.menu__list > \.menu__item > \.menu__link/);
+    assert.match(css, /\.menu__submenu\s*\{[^}]*width: 15rem/s);
+    assert.match(css, /\.menu__submenu-panel \.menu__link/);
   } finally {
     await vite.close();
   }
 });
 
-test("module submenus hide each unauthorized view and create option", async () => {
+test("module shells keep views without internal navigation links", async () => {
   const vite = await createServer({ configFile: false, server: { middlewareMode: true }, cacheDir: "/tmp/clinica-vite-tests" });
   try {
     const [{ default: Patients }, { default: Users }, { default: Profiles }, { AuthContext }] = await Promise.all([
@@ -232,28 +264,27 @@ test("module submenus hide each unauthorized view and create option", async () =
       vite.ssrLoadModule("/src/features/profiles/ProfilesFeature.jsx"),
       vite.ssrLoadModule("/src/contexts/AuthContext.js"),
     ]);
-    const renderWith = (Component, props, permissions) => renderToStaticMarkup(
+    const permissions = [
+      "patients.view", "patients.create", "users.view", "users.create",
+      "users.assign_profiles", "profiles.view", "profiles.create",
+    ];
+    const renderWith = (Component, view) => renderToStaticMarkup(
       createElement(AuthContext.Provider, {
-        value: { hasPermission: (code) => permissions.includes(code) },
-      }, createElement(Component, props)),
+        value: {
+          hasPermission: (code) => permissions.includes(code),
+          reconcileUser() {},
+          refreshSession() {},
+        },
+      }, createElement(Component, { view, onViewChange() {} })),
     );
-    for (const [Component, props, viewCode, createCode] of [
-      [Patients, { view: "cadastrar", onViewChange() {} }, "patients.view", "patients.create"],
-      [Profiles, { view: "cadastrar", onViewChange() {} }, "profiles.view", "profiles.create"],
-    ]) {
-      const createOnly = renderWith(Component, props, [createCode]);
-      assert.match(createOnly, />Cadastrar(?: paciente| usuário| perfil)?</);
-      assert.doesNotMatch(createOnly, />Consultar(?: pacientes| usuários| perfis)?</);
-      const viewOnly = renderWith(Component, { ...props, view: "consultar" }, [viewCode]);
-      assert.match(viewOnly, />Consultar(?: pacientes| usuários| perfis)?</);
-      assert.doesNotMatch(viewOnly, />Cadastrar(?: paciente| usuário| perfil)?</);
+    for (const Component of [Patients, Users, Profiles]) {
+      for (const view of ["consultar", "cadastrar"]) {
+        const html = renderWith(Component, view);
+        assert.doesNotMatch(html, /class="module-sidebar/);
+        assert.doesNotMatch(html, />Consultar<\/a>/);
+        assert.doesNotMatch(html, />Cadastrar<\/a>/);
+      }
     }
-    const usersCreate = renderWith(Users, { view: "cadastrar", onViewChange() {} }, ["users.create", "users.assign_profiles"]);
-    assert.match(usersCreate, />Cadastrar</);
-    assert.doesNotMatch(usersCreate, />Consultar</);
-    const usersView = renderWith(Users, { view: "consultar", onViewChange() {} }, ["users.view"]);
-    assert.match(usersView, />Consultar</);
-    assert.doesNotMatch(usersView, />Cadastrar</);
   } finally { await vite.close(); }
 });
 
@@ -334,24 +365,59 @@ test("direct destinations require module permissions while password remains pers
   assert.equal(canAccessDestination(patientsCreate, { permissions: ["patients.create"] }), true);
   assert.equal(canAccessDestination(usersCreate, { permissions: ["users.create"] }), false);
   assert.equal(canAccessDestination(usersCreate, { permissions: ["users.assign_profiles"] }), false);
-  assert.equal(canAccessDestination(usersCreate, { permissions: ["users.create", "users.assign_profiles"] }), true);
+  assert.equal(canAccessDestination(usersCreate, { permissions: ["users.create", "users.assign_profiles"] }), false);
+  assert.equal(canAccessDestination(usersCreate, { permissions: ["users.view", "users.create", "users.assign_profiles"] }), true);
+  assert.equal(canAccessDestination(profilesCreate, { permissions: ["profiles.create"] }), false);
+  assert.equal(canAccessDestination(profilesCreate, { permissions: ["profiles.view", "profiles.create"] }), true);
   assert.equal(canAccessDestination(usersList, { is_admin: true, permissions: [] }), false);
   assert.equal(canAccessDestination(resolveDestination("#/alterar-senha"), {}), true);
 });
 
-test("main navigation keeps the requested hierarchy and disabled modules", async () => {
+test("main navigation exposes active modules and keeps operations in submenus", async () => {
   const { navigationItems } = await import("../src/routes/navigation.js?menu-tree");
   assert.deepEqual(navigationItems.map((item) => item.label), [
-    "Início", "Atendimento", "Financeiro", "Relatório", "Configurações",
+    "Início", "Pacientes", "Configurações",
   ]);
-  const atendimento = navigationItems.find((item) => item.id === "atendimento");
-  assert.deepEqual(atendimento.children.map((item) => item.label), ["Pacientes", "Agendamento", "Atendimento"]);
-  assert.equal(atendimento.children[0].href, "#/pacientes/consultar");
-  assert.equal(atendimento.children[0].children, undefined);
-  assert.equal(atendimento.children[1].disabled, true);
-  assert.equal(atendimento.children[2].disabled, true);
-  assert.equal(navigationItems.find((item) => item.id === "financeiro").disabled, true);
-  assert.equal(navigationItems.find((item) => item.id === "relatorios").disabled, true);
+  const patients = navigationItems.find((item) => item.id === "pacientes");
+  assert.deepEqual(patients.children.map((item) => item.label), ["Consultar pacientes", "Cadastrar paciente"]);
+  assert.deepEqual(patients.children.map((item) => item.href), ["#/pacientes/consultar", "#/pacientes/cadastrar"]);
+  const settings = navigationItems.find((item) => item.id === "configuracoes");
+  assert.deepEqual(settings.children.map((item) => item.label), [
+    "Consultar colaboradores", "Cadastrar colaborador",
+    "Consultar perfis", "Cadastrar perfil", "Integração",
+  ]);
+  assert.deepEqual(settings.children.map((item) => item.href), [
+    "#/usuarios/consultar", "#/usuarios/cadastrar",
+    "#/perfis/consultar", "#/perfis/cadastrar",
+    "#/configuracoes/integracao",
+  ]);
+  const submenuIcons = navigationItems.flatMap((item) => item.children ?? []).map((item) => item.icon);
+  assert.ok(submenuIcons.every(Boolean));
+  assert.equal(new Set(submenuIcons).size, submenuIcons.length);
+  assert.equal(navigationItems.some((item) => ["agenda", "atendimento", "financeiro", "relatorios"].includes(item.id)), false);
+  assert.equal(navigationItems.some((item) => item.id === "minha-conta"), false);
+});
+
+test("my account shows identity and assigned profile data from the session", async () => {
+  const vite = await createServer({ configFile: false, server: { middlewareMode: true }, cacheDir: "/tmp/clinica-vite-tests" });
+  try {
+    const { default: MyAccount } = await vite.ssrLoadModule("/src/pages/MyAccount/MyAccount.jsx");
+    const html = renderToStaticMarkup(createElement(MyAccount, {
+      user: {
+        full_name: "Ana Silva",
+        username: "ana.silva",
+        profiles: [{ name: "Recepção" }, { name: "Gestão" }],
+        is_admin: false,
+      },
+    }));
+    assert.match(html, /<h1 id="my-account-title">Meu perfil<\/h1>/);
+    assert.match(html, /Ana Silva/);
+    assert.match(html, /ana\.silva/);
+    assert.match(html, /Recepção, Gestão/);
+    assert.match(html, />Não<\/dd>/);
+  } finally {
+    await vite.close();
+  }
 });
 
 test("user API methods preserve CSRF, credentials and exact password/status contracts", async () => {

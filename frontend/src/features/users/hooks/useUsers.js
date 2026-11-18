@@ -29,12 +29,12 @@ export default function useUsers({ view = "consultar", onViewChange }) {
   }
 
   const canCreate = hasPermission("users.create") && hasPermission("users.assign_profiles");
-  const canAccess = creating ? canCreate : hasPermission("users.view");
+  const canView = hasPermission("users.view");
+  const canAccess = creating ? canView && canCreate : canView;
   return {
     canAccess: canAccess && !denied,
     canAssignProfiles,
     canChangeStatus,
-    canCreate,
     canEdit,
     canResetPassword,
     canUpdateData,
@@ -42,14 +42,11 @@ export default function useUsers({ view = "consultar", onViewChange }) {
     denied,
     editingId,
     handleFailure,
-    hasViewPermission: hasPermission("users.view"),
     message,
     onEdit: (id) => { setMessage(""); setEditingId(id); },
     onRetry: () => setReload((current) => current + 1),
     onSaved: saved,
     reload,
-    resetEdit: () => setEditingId(null),
-    clearMessage: () => setMessage(""),
     setEditingId,
   };
 }

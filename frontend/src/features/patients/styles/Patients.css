@@ -1,5 +1,6 @@
-.patients {
+.module-shell.patients {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   width: 100%;
   min-width: 0;
 }
@@ -33,15 +34,6 @@
   flex: 1 1 32rem;
   width: 100%;
   max-width: none;
-}
-
-.patients__accessible-title {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 }
 
 .patients--creating .patients__content,

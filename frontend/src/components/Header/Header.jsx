@@ -1,11 +1,15 @@
 import BrandMark from "../BrandMark/BrandMark";
-import Button from "../Button/Button";
+import HeaderAccountMenu from "../HeaderAccountMenu/HeaderAccountMenu.jsx";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
 import { displayUserName } from "../../services/displayUserName";
 import "./Header.css";
 
 export default function Header({ user, onLogout, operationLoading = false }) {
   const displayName = displayUserName(user);
+  const nameParts = user?.full_name?.trim().split(/\s+/).filter(Boolean) ?? [];
+  const mobileDisplayName = nameParts.length > 1
+    ? `${nameParts[0]} ${nameParts[nameParts.length - 1]}`
+    : nameParts[0] ?? "";
 
   return (
     <header className="header">
@@ -21,25 +25,22 @@ export default function Header({ user, onLogout, operationLoading = false }) {
 
         <div className="header__account">
           {displayName && (
-            <div className="header__identity">
+            <div className={`header__identity${mobileDisplayName ? "" : " header__identity--no-mobile-name"}`}>
               <span className="header__identity-details">
                 <span className="header__identity-label">Usuário</span>
-                <strong>{displayName}</strong>
+                <strong className="header__identity-name header__identity-name--desktop">{displayName}</strong>
+                {mobileDisplayName && (
+                  <strong className="header__identity-name header__identity-name--mobile">
+                    {mobileDisplayName}
+                  </strong>
+                )}
               </span>
             </div>
           )}
 
           <div className="header__actions">
             <ThemeToggle />
-
-            <Button
-              className="header__logout"
-              variant="secondary"
-              disabled={operationLoading}
-              onClick={onLogout}
-            >
-              Sair
-            </Button>
+            <HeaderAccountMenu onLogout={onLogout} operationLoading={operationLoading} />
           </div>
         </div>
 

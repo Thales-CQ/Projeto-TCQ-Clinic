@@ -1,3 +1,9 @@
+/* Keep text at the authored size on mobile browsers. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* Consistent sizing for every element and pseudo-element. */
 *,
 *::before,

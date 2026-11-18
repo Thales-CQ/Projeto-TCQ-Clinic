@@ -1,44 +1,50 @@
 export const navigationItems = [
   {
-    id: "inicio", label: "Início", href: "#/inicio",
+    id: "inicio", label: "Início", icon: "home", href: "#/inicio",
   },
   {
-    id: "atendimento", label: "Atendimento",
+    id: "pacientes", label: "Pacientes", icon: "patients",
     children: [
       {
-        id: "pacientes", routeId: "pacientes-consultar", pageId: "pacientes",
-        label: "Pacientes", href: "#/pacientes/consultar", view: "consultar",
-        permission: "patients.view", createPermission: "patients.create",
-        createRouteId: "pacientes-cadastrar", createHref: "#/pacientes/cadastrar",
-        createView: "cadastrar",
+        id: "pacientes-consultar", routeId: "pacientes-consultar", pageId: "pacientes",
+        label: "Consultar pacientes", icon: "search", href: "#/pacientes/consultar", view: "consultar",
+        permission: "patients.view",
       },
-      { id: "agendamentos", label: "Agendamento", disabled: true },
-      { id: "atendimentos", label: "Atendimento", disabled: true },
+      {
+        id: "pacientes-cadastrar", routeId: "pacientes-cadastrar", pageId: "pacientes",
+        label: "Cadastrar paciente", icon: "userPlus", href: "#/pacientes/cadastrar", view: "cadastrar",
+        permission: "patients.create",
+      },
     ],
   },
-  { id: "financeiro", label: "Financeiro", disabled: true },
-  { id: "relatorios", label: "Relatório", disabled: true },
   {
-    id: "configuracoes", label: "Configurações",
+    id: "configuracoes", label: "Configurações", icon: "settings",
     children: [
       {
-        id: "usuarios", routeId: "usuarios-consultar", pageId: "usuarios",
-        label: "Usuários", href: "#/usuarios/consultar", view: "consultar",
-        permission: "users.view", createPermission: "users.create",
-        createPermissions: ["users.create", "users.assign_profiles"],
-        createRouteId: "usuarios-cadastrar", createHref: "#/usuarios/cadastrar",
-        createView: "cadastrar",
+        id: "usuarios-consultar", routeId: "usuarios-consultar", pageId: "usuarios",
+        label: "Consultar colaboradores", icon: "users", href: "#/usuarios/consultar", view: "consultar",
+        permission: "users.view",
       },
       {
-        id: "perfis", routeId: "perfis-consultar", pageId: "perfis",
-        label: "Perfis", href: "#/perfis/consultar", view: "consultar",
-        permission: "profiles.view", createPermission: "profiles.create",
-        createRouteId: "perfis-cadastrar", createHref: "#/perfis/cadastrar",
-        createView: "cadastrar",
+        id: "usuarios-cadastrar", routeId: "usuarios-cadastrar", pageId: "usuarios",
+        label: "Cadastrar colaborador", icon: "account", href: "#/usuarios/cadastrar", view: "cadastrar",
+        permission: "users.create",
+        requiredPermissions: ["users.view", "users.create", "users.assign_profiles"],
+      },
+      {
+        id: "perfis-consultar", routeId: "perfis-consultar", pageId: "perfis",
+        label: "Consultar perfis", icon: "profile", href: "#/perfis/consultar", view: "consultar",
+        permission: "profiles.view",
+      },
+      {
+        id: "perfis-cadastrar", routeId: "perfis-cadastrar", pageId: "perfis",
+        label: "Cadastrar perfil", icon: "shield", href: "#/perfis/cadastrar", view: "cadastrar",
+        permission: "profiles.create",
+        requiredPermissions: ["profiles.view", "profiles.create"],
       },
       {
         id: "integracao", routeId: "integracao-cep", pageId: "integracao",
-        label: "Integração", href: "#/configuracoes/integracao",
+        label: "Integração", icon: "plug", href: "#/configuracoes/integracao",
         permission: "integrations.cep.view",
       },
     ],
@@ -65,18 +71,11 @@ export function isAdminAwaitingCepPermission(destination, user) {
       && user.permissions.includes("integrations.cep.view"));
 }
 
-// Internal module navigation remains hash-addressable without exposing these
-// actions as expandable items in the main menu.
+// Personal account destinations remain hash-addressable without appearing in the main menu.
 destinations.push(
-  { id: "pacientes", moduleId: "atendimento", routeId: "pacientes-cadastrar", label: "Cadastrar paciente", href: "#/pacientes/cadastrar", view: "cadastrar", permission: "patients.create" },
-  { id: "usuarios", moduleId: "configuracoes", routeId: "usuarios-cadastrar", label: "Cadastrar usuário", href: "#/usuarios/cadastrar", view: "cadastrar", permission: "users.create", requiredPermissions: ["users.create", "users.assign_profiles"] },
-  { id: "perfis", moduleId: "configuracoes", routeId: "perfis-cadastrar", label: "Cadastrar perfil", href: "#/perfis/cadastrar", view: "cadastrar", permission: "profiles.create" },
+  { id: "meu-perfil", moduleId: "minha-conta", routeId: "meu-perfil", label: "Meu perfil", href: "#/minha-conta", view: "perfil" },
+  { id: "alterar-senha", moduleId: "minha-conta", routeId: "alterar-senha", label: "Alterar senha", href: "#/alterar-senha", view: "senha" },
 );
-
-destinations.push({
-  id: "alterar-senha", moduleId: "alterar-senha", routeId: "alterar-senha",
-  label: "Alterar minha senha", href: "#/alterar-senha",
-});
 
 export function resolveDestination(hash) {
   const href = ["#/pacientes", "#/usuarios", "#/perfis"].includes(hash) ? `${hash}/consultar` : hash;
@@ -103,20 +102,12 @@ export function navigationForUser(user) {
         return hasAuthorizedChild ? [{ ...item, children }] : [];
       }
       if (item.requiredPermissionSets && !hasPermissionSet(item.requiredPermissionSets)) return [];
+      if (item.requiredPermissions && !item.requiredPermissions.every(can)) return [];
       if (!item.permission || can(item.permission)) return [item];
       // Keep the activation route discoverable to a structural administrator
       // while the CEP permission migration is pending. The route shows a
       // dependency notice; the API remains protected by backend permissions.
       if (item.id === "integracao" && user?.is_admin === true) return [item];
-      const createPermissions = item.createPermissions ?? (item.createPermission ? [item.createPermission] : []);
-      if (createPermissions.length > 0 && createPermissions.every(can)) {
-        return [{
-          ...item,
-          routeId: item.createRouteId,
-          href: item.createHref,
-          view: item.createView,
-        }];
-      }
       return [];
     });
   }

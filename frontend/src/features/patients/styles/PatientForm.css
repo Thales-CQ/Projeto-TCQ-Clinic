@@ -3,7 +3,7 @@
   gap: var(--space-6);
   width: 100%;
   min-width: 0;
-  padding: 20px;
+  padding: 1.25rem;
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-card);
@@ -19,7 +19,7 @@
 
 .patient-create__field {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -80,8 +80,8 @@
 .patient-create__field select {
   width: 100%;
   min-width: 0;
-  min-height: 42px;
-  padding: 8px 12px;
+  min-height: var(--input-height);
+  padding: var(--space-2) var(--space-3);
   color: var(--color-text);
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
@@ -115,7 +115,7 @@
 }
 
 .patient-create option {
-  text-align: center;
+  text-align: left;
 }
 
 .patient-create__field input::placeholder {
@@ -140,7 +140,7 @@
 .patient-create__field input:focus-visible,
 .patient-create__field select:focus-visible {
   outline: 0;
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 15%, transparent);
+  box-shadow: 0 0 0 var(--focus-ring-size) color-mix(in srgb, var(--color-primary) 15%, transparent);
 }
 
 .patient-create__field input:disabled,
@@ -151,13 +151,10 @@
 }
 
 .patient-create__error {
-  color: var(--color-error);
   margin: 0;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-error);
   font-size: var(--font-size-meta);
-}
-
-.patient-create__error {
-  padding: 10px 12px;
   background: var(--color-error-background);
   border: var(--border-width) solid var(--color-error);
   border-radius: var(--radius-control);

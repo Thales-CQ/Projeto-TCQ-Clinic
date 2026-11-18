@@ -1,5 +1,5 @@
 .header {
-  padding: 12px var(--page-padding);
+  padding: var(--space-3) var(--page-padding);
   background: var(--color-surface);
   border-bottom: var(--border-width) solid var(--color-border-subtle);
 }
@@ -10,7 +10,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  min-height: 56px;
+  min-height: 3.5rem;
   width: 100%;
   max-width: var(--content-max-width);
   margin: 0 auto;
@@ -26,19 +26,19 @@
 
 .header__brand {
   min-width: 0;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .header__account {
   display: grid;
   grid-template-columns: minmax(0, 12rem) auto;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 5px 6px 5px 12px;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
   min-width: 0;
   background: var(--color-surface-soft);
   border: var(--border-width) solid var(--color-border);
-  border-radius: 14px;
+  border-radius: var(--radius-card);
 }
 
 .header__brand-mark {
@@ -67,15 +67,15 @@
 }
 
 .header__brand-name {
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 1.125rem;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: -0.025em;
   overflow-wrap: normal;
 }
 
 .header__identity {
   min-width: 0;
-  padding-right: 8px;
+  padding-right: var(--space-2);
   border-right: var(--border-width) solid var(--color-border);
 }
 
@@ -91,8 +91,12 @@
   font-size: var(--font-size-meta);
 }
 
-.header__identity-details strong {
+.header__identity-name {
   font-size: var(--font-size-label);
+}
+
+.header__identity-name--mobile {
+  display: none;
 }
 
 .header__status {
@@ -102,20 +106,6 @@
 
 .header__status:empty {
   display: none;
-}
-
-.header__logout.button {
-  min-height: var(--control-height);
-  padding: 6px 12px;
-  border-radius: 9px;
-  font-size: 0.875rem;
-}
-
-.header__logout.button:hover:not(:disabled),
-.header__logout.button:active:not(:disabled) {
-  color: var(--color-on-primary);
-  background: var(--color-danger);
-  border-color: var(--color-danger);
 }
 
 .header__actions {
@@ -169,39 +159,87 @@
 
 @media (max-width: 40rem) {
   .header {
-    padding-block: var(--space-2);
+    padding: var(--space-2) var(--page-padding);
+  }
+
+  .header__inner {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "brand actions"
+      "identity actions";
+    grid-template-rows: auto auto;
+    column-gap: var(--space-3);
+    row-gap: var(--space-1);
+    min-height: var(--control-height);
+  }
+
+  .header__brand {
+    grid-area: brand;
+    gap: var(--space-2);
+  }
+
+  .header__brand-mark {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0.375rem;
+    background: var(--color-surface-soft);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-control);
+  }
+
+  .header__brand-name {
+    overflow: hidden;
+    font-size: 1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .header__account {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2);
+    display: contents;
   }
 
   .header__identity {
+    grid-area: identity;
+    width: 100%;
+    max-width: 100%;
     padding: 0;
     border-right: 0;
+  }
+
+  .header__identity--no-mobile-name {
+    display: none;
   }
 
   .header__identity-details {
     display: grid;
     gap: 0;
+    min-width: 0;
+    justify-items: start;
+    text-align: start;
   }
 
-  .header__identity-details strong {
-    min-width: 0;
+  .header__identity-label,
+  .header__identity-name--desktop {
+    display: none;
+  }
+
+  .header__identity-name--mobile {
+    display: block;
+    overflow: hidden;
     font-size: var(--font-size-label);
+    font-weight: var(--font-weight-medium);
     line-height: var(--line-height-tight);
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .header__actions {
-    display: flex;
-    flex: 0 0 auto;
-  }
-
-  .header__logout.button {
-    min-height: var(--control-height);
+    grid-area: actions;
+    align-self: center;
+    justify-self: end;
+    gap: var(--space-1);
   }
 }
 

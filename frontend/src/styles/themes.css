@@ -43,7 +43,7 @@
   --color-hover-background: #e1f4f1;
 
   /* Navigation surfaces */
-  --color-nav-background: #ffffff;
+  --color-nav-background: #e1efee;
   --color-nav-surface: #ffffff;
   --color-nav-hover: #e1f4f1;
   --color-nav-active: #d8efec;
@@ -52,6 +52,11 @@
   --color-submenu-background: #ffffff;
   --color-submenu-hover: #eef8f7;
   --color-patient-hover: #f2f8f7;
+
+  /* Elevation follows the theme. */
+  --shadow-card: 0 8px 24px rgb(24 71 78 / 7%);
+  --shadow-dropdown: 0 14px 30px rgb(24 71 78 / 14%);
+  --shadow-dropdown-compact: 0 4px 12px rgb(24 71 78 / 16%);
 }
 
 :root[data-theme="dark"] {
@@ -98,7 +103,7 @@
   --color-hover-background: #343536;
 
   /* Navigation surfaces */
-  --color-nav-background: #1a2023;
+  --color-nav-background: #203a3c;
   --color-nav-surface: #1a2023;
   --color-nav-hover: #29343a;
   --color-nav-active: #3a3525;
@@ -107,5 +112,9 @@
   --color-submenu-background: #222b2f;
   --color-submenu-hover: #304044;
   --color-patient-hover: #26383b;
+
+  /* Elevation follows the theme. */
   --shadow-card: 0 8px 24px rgb(0 0 0 / 22%);
+  --shadow-dropdown: 0 14px 30px rgb(0 0 0 / 38%);
+  --shadow-dropdown-compact: 0 4px 12px rgb(0 0 0 / 32%);
 }

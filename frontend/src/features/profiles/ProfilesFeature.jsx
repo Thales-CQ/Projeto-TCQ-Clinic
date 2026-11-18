@@ -22,9 +22,7 @@ export default function ProfilesFeature({ view = "consultar", onViewChange }) {
     </>
   );
 
-  return <Profiles creating={profiles.creating} editing={profiles.editing}
-    canView={profiles.canView} canCreate={profiles.canCreate}
-    onResetEditing={profiles.resetEditing} onClearMessage={profiles.clearMessage}>
+  return <Profiles creating={profiles.creating} editing={profiles.editing}>
     {content}
   </Profiles>;
 }

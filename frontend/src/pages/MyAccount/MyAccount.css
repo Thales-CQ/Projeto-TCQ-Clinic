@@ -1,0 +1,64 @@
+.my-account {
+  display: grid;
+  gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
+}
+
+.my-account__intro {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.my-account__intro h1 {
+  margin: 0;
+}
+
+.my-account__intro p {
+  max-width: 42rem;
+  color: var(--color-text-muted);
+}
+
+.my-account__details {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.my-account__details > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.7fr) minmax(0, 1.3fr);
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-block: var(--space-3);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.my-account__details > div:last-child {
+  border-bottom: 0;
+}
+
+.my-account__details dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+
+.my-account__details dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 40rem) {
+  .my-account__details > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+  }
+}

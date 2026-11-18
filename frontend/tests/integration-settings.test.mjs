@@ -194,9 +194,9 @@ test("CEP integration screen exposes provider configuration and test lookup", as
     assert.equal((html.match(/Nenhuma configuração disponível nesta versão\./g) || []).length, 3);
     assert.equal((html.match(/class="integration-settings__accordion-item"/g) || []).length, 4);
     assert.match(html, /id="cep-integration-panel"[^>]*role="region"/);
-    assert.equal((html.match(/aria-expanded="true"/g) || []).length, 1);
-    assert.equal((html.match(/aria-expanded="false"/g) || []).length, 3);
-    assert.equal((html.match(/integration-settings__accordion-panel[^>]*hidden=""/g) || []).length, 3);
+    assert.equal((html.match(/aria-expanded="true"/g) || []).length, 0);
+    assert.equal((html.match(/aria-expanded="false"/g) || []).length, 4);
+    assert.equal((html.match(/integration-settings__accordion-panel[^>]*hidden=""/g) || []).length, 4);
     const panelOrder = ["Consulta de CEP", "WhatsApp", "E-mail", "Outras integrações"]
       .map((title) => html.indexOf(`>${title}</span>`));
     assert.ok(panelOrder.every((index) => index >= 0));
@@ -240,7 +240,7 @@ test("CEP integration screen exposes provider configuration and test lookup", as
     assert.match(api, /`\/integrations\/cep\/lookup\?/);
     assert.match(app, /destination\.id === "integracao"/);
     assert.match(app, /<IntegrationFeature/);
-    assert.match(navigation, /label: "Integração", href: "#\/configuracoes\/integracao"/);
+    assert.match(navigation, /label: "Integração", icon: "plug", href: "#\/configuracoes\/integracao"/);
     assert.equal((html.match(/<form/g) || []).length, 2);
     const css = await readFile(new URL("../src/features/settings/IntegrationFeature.css", import.meta.url), "utf8");
     assert.match(css, /\.integration-settings__accordion\s*\{\s*display:\s*grid/);

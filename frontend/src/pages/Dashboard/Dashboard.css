@@ -129,7 +129,12 @@
   gap: var(--space-3);
   min-width: 0;
   padding: var(--space-2) 0;
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
   text-align: start;
+}
+
+.dashboard__birthday-list > li:last-child .dashboard__birthday {
+  border-bottom: 0;
 }
 
 .dashboard__avatar {

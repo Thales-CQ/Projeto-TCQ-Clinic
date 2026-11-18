@@ -14,7 +14,7 @@ export default function UserList({
   return (
     <div className="user-list">
       <header className="users__header user-list__header">
-        <span id="users-title" className="users__sr-only">Consulta de usuários</span>
+        <h2 id="users-title">Consultar usuários</h2>
         <label className="user-list__search">
           <svg className="user-list__search-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <circle cx="10.8" cy="10.8" r="6.8" />

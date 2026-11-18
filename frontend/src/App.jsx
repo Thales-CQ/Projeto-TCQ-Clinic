@@ -11,6 +11,7 @@ import Users from "./features/users/UsersFeature.jsx";
 import Profiles from "./features/profiles/ProfilesFeature.jsx";
 import IntegrationFeature from "./features/settings/IntegrationFeature.jsx";
 import ChangePassword from "./pages/ChangePassword/ChangePassword";
+import MyAccount from "./pages/MyAccount/MyAccount";
 import Button from "./components/Button/Button";
 
 export default function App() {
@@ -71,6 +72,8 @@ export default function App() {
         />
       ) : destination.id === "alterar-senha" ? (
         <ChangePassword />
+      ) : destination.id === "meu-perfil" ? (
+        <MyAccount user={user} />
       ) : (
         <Dashboard
           user={user}

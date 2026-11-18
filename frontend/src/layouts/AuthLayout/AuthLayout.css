@@ -16,7 +16,7 @@
   max-width: var(--auth-max-width);
   min-width: 0;
   margin: 0 auto;
-  padding: 30px;
+  padding: 1.875rem;
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-card);
@@ -27,14 +27,14 @@
 @media (min-width: 761px) {
   .auth-layout__panel {
     max-width: 28rem;
-    padding: 36px;
+    padding: 2.25rem;
   }
 }
 
 @media (min-width: 40rem) and (max-width: 64rem) {
   .auth-layout__panel {
     max-width: min(32rem, calc(100vw - (2 * var(--page-padding))));
-    padding: clamp(30px, 4vw, 36px);
+    padding: clamp(1.875rem, 4vw, 2.25rem);
   }
 }
 
@@ -42,7 +42,7 @@
   margin: 0;
   color: var(--color-text);
   font-size: clamp(1.45rem, 3vw, 1.8rem);
-  font-weight: 700;
+  font-weight: var(--font-weight-medium);
   letter-spacing: -0.035em;
   text-align: center;
 }
@@ -59,8 +59,8 @@
   max-width: 34rem;
   min-height: 0;
   padding: 0;
-  border: 0;
-  border-radius: 1rem;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
 }
 
@@ -72,18 +72,6 @@
   padding: 1.5rem clamp(1.5rem, 6vw, 2.5rem);
   background: var(--color-surface-soft);
   overflow: hidden;
-}
-
-.auth-layout__identity::after {
-  position: absolute;
-  right: -9rem;
-  bottom: -13rem;
-  width: 20rem;
-  aspect-ratio: 1;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
-  border-radius: 50%;
-  content: "";
-  pointer-events: none;
 }
 
 .auth-layout__brand-lockup {
@@ -103,7 +91,7 @@
   aspect-ratio: 1;
   color: var(--color-on-primary);
   background: var(--color-primary);
-  border-radius: 0.875rem;
+  border-radius: var(--radius-card);
 }
 
 .auth-layout__brand-mark svg {
@@ -114,10 +102,10 @@
 
 .auth-layout__panel--login .auth-layout__title {
   max-width: none;
-  font-size: clamp(1.75rem, 8vw, 2.5rem);
-  font-weight: 650;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  font-size: clamp(1.75rem, 6vw, 2.25rem);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: -0.035em;
+  line-height: var(--line-height-tight);
   text-align: left;
   overflow-wrap: anywhere;
 }
@@ -145,12 +133,6 @@
     padding: clamp(2rem, 5vw, 4.5rem);
   }
 
-  .auth-layout__identity::after {
-    right: -8rem;
-    bottom: -11rem;
-    width: clamp(16rem, 32vw, 26rem);
-  }
-
   .auth-layout__brand-lockup {
     grid-auto-flow: row;
     gap: clamp(1.5rem, 4vw, 3rem);
@@ -158,13 +140,13 @@
 
   .auth-layout__brand-mark {
     width: clamp(3.5rem, 6vw, 4.5rem);
-    border-radius: 1.25rem;
+    border-radius: var(--radius-card);
   }
 
   .auth-layout__panel--login .auth-layout__title {
-    max-width: 5ch;
-    font-size: clamp(3.25rem, 7.4vw, 5.75rem);
-    line-height: 0.98;
+    max-width: 10ch;
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    line-height: 1.05;
   }
 
   .auth-layout__content {
@@ -174,7 +156,7 @@
 
 @media (max-width: 30rem) {
   .auth-layout__panel {
-    padding: 22px 18px;
+    padding: 1.375rem 1.125rem;
     border-radius: var(--radius-card);
   }
 }

@@ -30,9 +30,7 @@ export default function UsersFeature({ view = "consultar", onViewChange }) {
     </>
   );
 
-  return <Users creating={users.creating} editing={users.editingId !== null && users.canEdit}
-    hasCreatePermission={users.canCreate} hasViewPermission={users.hasViewPermission}
-    onResetEdit={users.resetEdit} onClearMessage={users.clearMessage}>
+  return <Users creating={users.creating} editing={users.editingId !== null && users.canEdit}>
     {content}
   </Users>;
 }

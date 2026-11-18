@@ -10,6 +10,7 @@
   --line-height: 1.5;
   --line-height-tight: 1.2;
   --font-weight-medium: 600;
+  --font-weight-button: 650;
 
   /* Spacing */
   --space-1: 0.25rem;
@@ -32,15 +33,19 @@
   --focus-offset: 2px;
   --radius-control: 0.5rem;
   --radius-card: 0.875rem;
-  --shadow-card: 0 8px 24px rgb(24 71 78 / 7%);
+  --radius-button: 0.6875rem;
+  --radius-pill: 999px;
+  --focus-ring-size: 0.25rem;
+  --input-height: 2.625rem;
+  --button-height: 2.875rem;
 }
 
 /* Breakpoint inventory (definitions remain in their existing stylesheets):
-   30rem: compact login/button layouts;
+   30rem: compact login, button and settings field layouts;
    40rem: smartphone layouts and module/table adaptations;
-   48rem and 24rem: patient/user table containers;
-   32rem: profile results container;
+   24rem, 32rem and 48rem: patient/user/profile table containers;
+   44rem: settings accordion layout;
    56.25rem: header layout;
    40rem–64rem: shared module shell in tablet.css; component/feature overrides stay with their owners;
-   760px/761px: menu and auth layout transitions.
+   760px/761px and 48.0625rem: menu and auth layout transitions.
    These values document the current baseline; they are not unified here. */

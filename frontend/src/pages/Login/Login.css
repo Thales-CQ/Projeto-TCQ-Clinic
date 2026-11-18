@@ -1,6 +1,6 @@
 .login__intro {
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
   margin-bottom: clamp(1.5rem, 4vw, 2.25rem);
   text-align: left;
 }
@@ -9,7 +9,7 @@
   margin: 0;
   color: var(--color-text);
   font-size: clamp(1.75rem, 4vw, 2.25rem);
-  font-weight: 650;
+  font-weight: var(--font-weight-medium);
   letter-spacing: -0.035em;
 }
 
@@ -18,19 +18,19 @@
   margin: 0;
   color: var(--color-text-muted);
   font-size: var(--font-size-base);
-  line-height: 1.55;
+  line-height: var(--line-height);
 }
 
 .login__form {
   display: grid;
-  gap: 20px;
+  gap: var(--space-6);
   width: 100%;
   min-width: 0;
 }
 
 .login__field {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -44,10 +44,10 @@
   width: 100%;
   min-width: 0;
   min-height: var(--control-height);
-  padding: 10px 14px;
+  padding: var(--space-2) var(--space-3);
   color: var(--color-text);
   text-align: left;
-  background: var(--color-background);
+  background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-control);
   transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
@@ -61,7 +61,7 @@
   outline: 0;
   border-color: var(--color-focus);
   background: var(--color-surface);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-focus) 15%, transparent);
+  box-shadow: 0 0 0 var(--focus-ring-size) color-mix(in srgb, var(--color-focus) 15%, transparent);
 }
 
 .login__form .login__input:disabled {
@@ -73,35 +73,35 @@
 .login__field .form-field__error,
 .login__error {
   margin: 0;
-  padding: 12px 14px;
+  padding: var(--space-3);
   color: var(--color-error);
   background: var(--color-error-background);
   border: var(--border-width) solid color-mix(in srgb, var(--color-error) 35%, var(--color-border));
   border-radius: var(--radius-control);
   font-size: var(--font-size-label);
-  line-height: 1.45;
+  line-height: var(--line-height);
   overflow-wrap: anywhere;
 }
 
 .login__status {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   margin: 0;
-  padding: 12px 14px;
+  padding: var(--space-3);
   color: var(--color-text);
   background: var(--color-surface-soft);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-control);
   font-size: var(--font-size-label);
-  line-height: 1.45;
+  line-height: var(--line-height);
 }
 
 .login__status-indicator {
   flex: 0 0 auto;
-  width: 15px;
+  width: 1rem;
   aspect-ratio: 1;
-  border: 2px solid color-mix(in srgb, var(--color-primary) 25%, transparent);
+  border: var(--focus-width) solid color-mix(in srgb, var(--color-primary) 25%, transparent);
   border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: login-status-spin 800ms linear infinite;
@@ -109,9 +109,9 @@
 
 .login__form > .button {
   width: 100%;
-  min-height: 48px;
-  margin-top: 4px;
-  border-radius: var(--radius-control);
+  min-height: var(--button-height);
+  margin-top: var(--space-1);
+  border-radius: var(--radius-button);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
 }
@@ -141,12 +141,12 @@
 
 @media (max-width: 48rem) {
   .login__intro {
-    gap: 8px;
-    margin-bottom: 1.5rem;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
   }
 
   .login__form {
-    gap: 18px;
+    gap: var(--space-4);
   }
 }
 

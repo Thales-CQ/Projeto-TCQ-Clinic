@@ -1,33 +1,29 @@
 import { useEffect, useId, useRef, useState } from "react";
+import MenuIcon from "./MenuIcon.jsx";
+import { toggleMenuPath } from "./menuState.js";
 import "./Menu.css";
 
 export default function Menu({ items = [], currentDestination }) {
   const [openIds, setOpenIds] = useState([]);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuRef = useRef(null);
-  const mobileMenuButtonRef = useRef(null);
   const triggerRefs = useRef({});
   const menuPrefix = useId();
-  const mainMenuId = `${menuPrefix}-main`;
-  const submenuPrefix = `${menuPrefix}-submenu`;
   const activeModuleId = currentDestination?.moduleId ?? currentDestination?.id;
   const activeRouteId = currentDestination?.routeId ?? currentDestination?.id;
-  const currentLocationLabel = currentDestination?.label
-    ?? items.find((item) => item.id === activeModuleId)?.label;
+  const openItem = items.find((item) => item.id === openIds[0] && item.children?.length);
+  const submenuTitleId = openItem ? `${menuPrefix}-submenu-title` : undefined;
 
   useEffect(() => {
-    if (openIds.length === 0 && !mobileMenuOpen) return;
+    if (openIds.length === 0) return;
 
     function closeOutside(event) {
       if (!menuRef.current?.contains(event.target)) {
         setOpenIds([]);
-        setMobileMenuOpen(false);
       }
     }
 
     function closeOnNavigation() {
       setOpenIds([]);
-      setMobileMenuOpen(false);
     }
 
     document.addEventListener("pointerdown", closeOutside);
@@ -38,18 +34,17 @@ export default function Menu({ items = [], currentDestination }) {
       document.removeEventListener("focusin", closeOutside);
       window.removeEventListener("hashchange", closeOnNavigation);
     };
-  }, [openIds, mobileMenuOpen]);
+  }, [openIds]);
 
   function closeSubmenuAndRestoreFocus() {
     const currentId = openIds.at(-1);
     if (currentId === undefined) return;
     triggerRefs.current[currentId]?.focus();
-    setOpenIds((current) => current.slice(0, -1));
+    setOpenIds([]);
   }
 
   function closeNavigation() {
     setOpenIds([]);
-    setMobileMenuOpen(false);
   }
 
   function handleKeyDown(event) {
@@ -59,101 +54,85 @@ export default function Menu({ items = [], currentDestination }) {
       event.preventDefault();
       event.stopPropagation();
       closeSubmenuAndRestoreFocus();
-      return;
-    }
-
-    if (mobileMenuOpen) {
-      event.preventDefault();
-      event.stopPropagation();
-      setMobileMenuOpen(false);
-      mobileMenuButtonRef.current?.focus();
     }
   }
 
   return (
     <nav
       ref={menuRef}
-      className={`menu${mobileMenuOpen ? " menu--open" : ""}`}
+      className="menu"
       aria-label="Navegação principal"
       onKeyDown={handleKeyDown}
     >
-      <div className="menu__mobile-bar">
-        <button
-          ref={mobileMenuButtonRef}
-          type="button"
-          className="menu__toggle"
-          aria-expanded={mobileMenuOpen}
-          aria-controls={mainMenuId}
-          aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
-          onClick={() => {
-            setOpenIds([]);
-            setMobileMenuOpen((current) => !current);
-          }}
-        >
-          <span className="menu__toggle-icon" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
-          <span className="menu__toggle-label">Menu</span>
-        </button>
-        {!mobileMenuOpen && currentLocationLabel && (
-          <p className="menu__current-location">
-            <span className="menu__current-location-caption">Você está em</span>
-            <span className="menu__current-location-name">{currentLocationLabel}</span>
-          </p>
-        )}
-      </div>
-
-      <ul id={mainMenuId} className="menu__list">
-        {renderItems(items, submenuPrefix)}
+      <ul className="menu__list">
+        {renderItems(items)}
       </ul>
+      <section
+        className="menu__submenu-panel"
+        id={`${menuPrefix}-submenu-panel`}
+        aria-labelledby={submenuTitleId}
+        hidden={!openItem}
+      >
+        {openItem && (
+          <>
+            <h2 id={submenuTitleId}>{openItem.label}</h2>
+            <ul>{renderItems(openItem.children)}</ul>
+          </>
+        )}
+      </section>
     </nav>
   );
 
-  function renderItems(menuItems, idPrefix) {
+  function renderItems(menuItems) {
     return menuItems.map((item) => (
-          <li className="menu__item" key={item.id}>
+          <li className="menu__item" key={item.routeId ?? item.id}>
             {item.children?.length ? (
               <>
                 <button
                   ref={(node) => { triggerRefs.current[item.id] = node; }}
                   type="button"
                   className={`menu__link${item.id === activeModuleId || item.pageId === currentDestination?.id ? " menu__link--active" : ""}`}
-                  aria-expanded={openIds.includes(item.id)}
+                  aria-label={item.label}
+                  title={item.label}
+                  aria-expanded={openIds[0] === item.id}
                   aria-haspopup="true"
-                  aria-controls={`${idPrefix}-${item.id}`}
-                  onClick={() => setOpenIds((current) => current.includes(item.id)
-                    ? current.filter((id) => id !== item.id)
-                    : [...current, item.id])}
+                  aria-controls={`${menuPrefix}-desktop-${item.id} ${menuPrefix}-submenu-panel`}
+                  onClick={() => setOpenIds((current) => toggleMenuPath(current, [], item.id))}
                 >
+                  <MenuIcon name={item.icon} />
                   {item.label}
                 </button>
                 <ul
-                  id={`${idPrefix}-${item.id}`}
+                  id={`${menuPrefix}-desktop-${item.id}`}
                   className="menu__submenu"
                   aria-label={item.label}
-                  hidden={!openIds.includes(item.id)}
+                  hidden={openIds[0] !== item.id}
                 >
-                  {renderItems(item.children, `${idPrefix}-${item.id}`)}
+                  {renderItems(item.children)}
                 </ul>
               </>
             ) : item.disabled ? (
               <button
                 type="button"
                 className="menu__link menu__link--disabled"
+                aria-label={item.label}
+                title={item.label}
                 aria-disabled="true"
                 disabled
               >
+                <MenuIcon name={item.icon} />
                 {item.label}
               </button>
             ) : (
               <a
                 className="menu__link"
+                aria-label={item.label}
+                title={item.label}
                 href={item.href}
                 aria-current={(item.routeId ?? item.id) === activeRouteId || item.id === activeRouteId ? "page" : undefined}
                 onClick={closeNavigation}
               >
+                <MenuIcon name={item.icon} />
                 {item.label}
               </a>
             )}

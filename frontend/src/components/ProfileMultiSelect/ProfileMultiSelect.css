@@ -1,6 +1,6 @@
 .profile-multi-select {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -8,7 +8,7 @@
 }
 
 .profile-multi-select legend {
-  margin-bottom: 6px;
+  margin-bottom: var(--space-2);
   padding: 0;
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -56,12 +56,13 @@
 .profile-multi-select__option:focus-within {
   outline: var(--focus-width) solid var(--color-focus);
   outline-offset: var(--focus-offset);
+  box-shadow: 0 0 0 var(--focus-ring-size) color-mix(in srgb, var(--color-primary) 15%, transparent);
 }
 
 .profile-multi-select__option input {
   flex: 0 0 auto;
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1.125rem;
+  height: 1.125rem;
   margin: 0;
   accent-color: var(--color-primary);
 }

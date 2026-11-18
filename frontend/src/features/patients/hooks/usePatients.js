@@ -20,6 +20,16 @@ export default function usePatients({ view, onViewChange, onEditPatient }) {
   const editing = !creating && editingPatientId !== null && canEdit;
 
   useEffect(() => {
+    function resetPatientViewState() {
+      setEditingPatientId(null);
+      setError("");
+    }
+
+    window.addEventListener("hashchange", resetPatientViewState);
+    return () => window.removeEventListener("hashchange", resetPatientViewState);
+  }, []);
+
+  useEffect(() => {
     if (creating || editing) return undefined;
 
     let active = true;
@@ -109,8 +119,6 @@ export default function usePatients({ view, onViewChange, onEditPatient }) {
   return {
     canChangeStatus,
     canEdit,
-    hasCreatePermission: hasPermission("patients.create"),
-    hasViewPermission: hasPermission("patients.view"),
     creating,
     editing,
     editingPatientId,

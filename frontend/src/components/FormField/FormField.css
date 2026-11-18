@@ -1,11 +1,11 @@
 .form-field :is(input, select) {
-  text-align: center;
+  text-align: left;
 }
 
 .form-field input::placeholder {
   color: var(--color-text-muted);
   font-weight: 400;
-  text-align: center;
+  text-align: left;
   opacity: 1;
 }
 
@@ -30,5 +30,5 @@
   border-color: var(--color-error);
   outline: var(--focus-width) solid var(--color-focus);
   outline-offset: var(--focus-offset);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-error) 15%, transparent);
+  box-shadow: 0 0 0 var(--focus-ring-size) color-mix(in srgb, var(--color-error) 15%, transparent);
 }

@@ -19,7 +19,7 @@
   display: grid;
   gap: var(--space-4);
   min-width: 0;
-  animation: content-enter 220ms ease-out;
+  animation: content-enter 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes content-enter {
@@ -37,7 +37,9 @@
 .main-layout__error {
   padding: var(--space-3);
   color: var(--color-error);
+  background: var(--color-error-background);
   border: var(--border-width) solid var(--color-error);
+  border-radius: var(--radius-control);
 }
 
 @media (max-width: 760px) {

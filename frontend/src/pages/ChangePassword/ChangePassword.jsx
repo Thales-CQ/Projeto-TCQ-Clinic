@@ -5,5 +5,5 @@ import { useNavigation } from "../../hooks/useNavigation";
 export default function ChangePassword() {
   const { navigate } = useNavigation();
   const password = usePasswordForm({ mode: "own" });
-  return <PasswordForm showCurrentPassword {...password} onCancel={() => navigate("inicio")} />;
+  return <PasswordForm showCurrentPassword {...password} onCancel={() => navigate("meu-perfil")} />;
 }

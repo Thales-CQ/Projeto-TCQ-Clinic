@@ -1,9 +1,9 @@
 .theme-toggle {
   display: inline-grid;
   place-items: center;
-  flex: 0 0 44px;
-  width: 44px;
-  height: 44px;
+  flex: 0 0 var(--control-height);
+  width: var(--control-height);
+  height: var(--control-height);
   padding: 0;
   color: var(--color-text);
   background: var(--color-surface);
@@ -14,8 +14,8 @@
 }
 
 .theme-toggle svg {
-  width: 20px;
-  height: 20px;
+  width: 1.25rem;
+  height: 1.25rem;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -61,6 +61,11 @@
 }
 
 @media (max-width: 40rem) {
+  .theme-toggle svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
   .theme-toggle__icon--hover {
     display: none;
   }

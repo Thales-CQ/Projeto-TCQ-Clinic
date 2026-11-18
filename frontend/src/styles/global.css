@@ -20,6 +20,7 @@ h2,
 h3 {
   line-height: var(--line-height-tight);
   font-weight: var(--font-weight-medium);
+  text-wrap: balance;
 }
 
 h1 {
@@ -31,7 +32,9 @@ h2 {
 }
 
 a {
-  color: var(--color-primary);
+  color: var(--color-primary-hover);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
 }
 
 /* Shared module layout */
@@ -101,7 +104,37 @@ a {
   outline-offset: var(--focus-offset);
 }
 
-/* Honor the user's reduced-motion preference. */
+/* Browser surfaces carry the theme too. */
+::selection {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+input,
+textarea {
+  caret-color: var(--color-primary);
+}
+
+* {
+  scrollbar-color: var(--color-border) transparent;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-pill);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Honor the user's reduced-motion preference; state changes stay instant. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -40,3 +40,12 @@ Thumbs.db
 # Arquivos temporários
 *.tmp
 *.temp
+
+# Ferramentas locais e artefatos de sessão
+.aider*
+.impeccable/critique/
+.impeccable/design.json
+.impeccable/hook.cache.json
+.cqclinic/
+*.bak
+/d

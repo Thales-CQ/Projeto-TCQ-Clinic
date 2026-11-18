@@ -10,7 +10,7 @@
 }
 
 .user-list__header {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .user-list__results {
@@ -41,49 +41,49 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 .user-list__search {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   width: 100%;
   min-width: 0;
   flex: 1 1 32rem;
-  min-height: 44px;
-  padding: 6px 12px;
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3);
   color: var(--color-text-muted);
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .user-list__search:focus-within {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 14%, transparent);
+  box-shadow: 0 0 0 var(--focus-ring-size) color-mix(in srgb, var(--color-primary) 15%, transparent);
 }
 
 .user-list__search-icon {
   position: absolute;
-  left: 13px;
-  width: 18px;
-  height: 18px;
+  left: 0.8125rem;
+  width: 1.125rem;
+  height: 1.125rem;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 1.8;
+  stroke-width: 1.7;
   pointer-events: none;
 }
 
 .user-list__search input {
   width: 100%;
   min-width: 0;
-  padding-inline: 28px;
+  padding-inline: 1.75rem;
   color: var(--color-text);
   background: transparent;
   border: 0;
@@ -128,7 +128,7 @@
 
 .user-list__table th,
 .user-list__table td {
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   border-bottom: var(--border-width) solid var(--color-border);
   text-align: left;
   vertical-align: middle;
@@ -160,6 +160,7 @@
 
 .user-list__table td {
   font-size: var(--font-size-button);
+  font-variant-numeric: tabular-nums;
 }
 
 .user-list__name {
@@ -179,18 +180,18 @@
   width: max-content;
   flex-shrink: 0;
   white-space: nowrap;
-  padding: 4px 9px;
-  border-radius: 999px;
+  padding: var(--space-1) 0.5625rem;
+  border-radius: var(--radius-pill);
   font-size: var(--font-size-meta);
-  font-weight: 650;
-  line-height: 1.2;
+  font-weight: var(--font-weight-button);
+  line-height: var(--line-height-tight);
 }
 
 .user-list__status::before {
-  width: 6px;
-  height: 6px;
+  width: 0.375rem;
+  height: 0.375rem;
   flex-shrink: 0;
-  margin-right: 6px;
+  margin-right: var(--space-1);
   border-radius: 50%;
   content: "";
 }
@@ -227,7 +228,7 @@
   min-width: max-content;
   white-space: nowrap;
   min-height: var(--control-height);
-  padding: 6px 10px;
+  padding: var(--space-2) var(--space-3);
   font-size: var(--font-size-meta);
 }
 
@@ -282,7 +283,7 @@
     }
 
     .user-list__table tr {
-      padding: 14px;
+      padding: var(--space-4);
       margin-block-end: var(--space-3);
       border: var(--border-width) solid var(--color-border);
       border-radius: var(--radius-card);

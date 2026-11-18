@@ -19,7 +19,7 @@ export default function PatientList({
   return (
     <>
       <header className="patients__header patient-list__header">
-        <span id="patients-title" className="patients__accessible-title">Consulta de pacientes</span>
+        <h2 id="patients-title">Consultar pacientes</h2>
         <label className="patient-list__search patients__search">
           <svg className="patient-list__search-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <circle cx="10.8" cy="10.8" r="6.8" />
